@@ -127,4 +127,9 @@ class CommittenteResource extends Resource
             'edit' => Pages\EditCommittente::route('/{record}/edit'),
         ];
     }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->canViewAllData() ?? false;
+    }
 }

@@ -115,4 +115,9 @@ class CommessaResource extends Resource
             'edit' => Pages\EditCommessa::route('/{record}/edit'),
         ];
     }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->canViewAllData() ?? false;
+    }
 }
