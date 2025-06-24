@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 
 class SpesaResource extends Resource
@@ -99,11 +100,81 @@ class SpesaResource extends Resource
                 Tables\Filters\SelectFilter::make('mese')
                     ->options(Spesa::getMesi()),
             ])
+            ->headerActions([
+                // Azione PDF Mese Corrente
+                
+                // Azione Configurazione Automazione Email
+                Tables\Actions\Action::make('configura_automazione')
+                    ->label('Configura Automazione Email')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->color('info')
+                    ->visible(fn () => auth()->user()?->canViewAllData())
+                    ->url('/admin/automazione-pdfs')
+                    ->openUrlInNewTab(),
+                
+                // Azione PDF Personalizzato
+                Tables\Actions\Action::make('pdf_personalizzato')
+                    ->label('PDF')
+                    ->icon('heroicon-o-calendar')
+                    ->color('primary')
+                    ->form([
+                        Forms\Components\Select::make('anno')
+                            ->label('Anno')
+                            ->options(array_combine(
+                                range(date('Y') - 2, date('Y') + 1),
+                                range(date('Y') - 2, date('Y') + 1)
+                            ))
+                            ->default(date('Y'))
+                            ->required(),
+                        
+                        Forms\Components\Select::make('mese')
+                            ->label('Mese')
+                            ->options(Spesa::getMesi())
+                            ->default(date('n'))
+                            ->required(),
+                        
+                        Forms\Components\Select::make('user_id')
+                            ->label('Utente')
+                            ->options(fn () => auth()->user()->canViewAllData() 
+                                ? \App\Models\User::pluck('name', 'id')->toArray()
+                                : [auth()->id() => auth()->user()->name]
+                            )
+                            ->default(auth()->id())
+                            ->required()
+                            ->visible(fn () => auth()->user()->canViewAllData()),
+                    ])
+                    ->action(function (array $data) {
+                        $url = route('pdf.spese-mensili', [
+                            'user_id' => $data['user_id'] ?? auth()->id(),
+                            'anno' => $data['anno'],
+                            'mese' => $data['mese'],
+                            'download' => true
+                        ]);
+                        
+                        Notification::make()
+                            ->title('PDF Generato')
+                            ->body('Il PDF delle spese è stato generato con successo.')
+                            ->success()
+                            ->send();
+                        
+                        return redirect($url);
+                    }),
+            ])
             ->actions([
                 Tables\Actions\EditAction::make()
                     ->visible(fn (Spesa $record) => auth()->user()?->canViewAllData() || $record->user_id === auth()->id()),
+                
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn (Spesa $record) => auth()->user()?->canViewAllData() || $record->user_id === auth()->id()),
+                
+                // Azione PDF per singola spesa (by utente/mese)
+                // Azione Anteprima file singolo
+                Tables\Actions\Action::make('anteprima_file')
+                    ->label('Anteprima')
+                    ->icon('heroicon-o-eye')
+                    ->color('primary')
+                    ->url(fn (Spesa $record) => asset('storage/' . $record->file))
+                    ->openUrlInNewTab(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

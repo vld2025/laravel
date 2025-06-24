@@ -7,12 +7,14 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "barryvdh/laravel-dompdf": "^3.1",
         "filament/filament": "^3.3",
         "filament/spatie-laravel-translatable-plugin": "^3.3",
         "laravel-lang/common": "^6.7",
         "laravel-lang/publisher": "^16.6",
         "laravel/framework": "^12.0",
-        "laravel/tinker": "^2.10.1"
+        "laravel/tinker": "^2.10.1",
+        "spatie/pdf-to-image": "^3.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
