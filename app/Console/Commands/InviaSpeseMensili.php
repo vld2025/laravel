@@ -46,18 +46,25 @@ class InviaSpeseMensili extends Command
 
         $this->info("📧 Processando configurazione ID {$config->id}...");
 
-        // Calcola mese precedente
-        $meseScorso = now();
-        $anno = $meseScorso->year;
-        $mese = $meseScorso->month;
-
+        // Calcola mese in base alla configurazione
+        if ($config->mese_riferimento === 'corrente') {
+            $dataRiferimento = now();
+            $meseDescrizione = 'corrente';
+        } else {
+            $dataRiferimento = now()->subMonth();
+            $meseDescrizione = 'precedente';
+        }
+        
+        $anno = $dataRiferimento->year;
+        $mese = $dataRiferimento->month;
         $mesiNomi = [
             1 => 'Gennaio', 2 => 'Febbraio', 3 => 'Marzo', 4 => 'Aprile',
             5 => 'Maggio', 6 => 'Giugno', 7 => 'Luglio', 8 => 'Agosto',
             9 => 'Settembre', 10 => 'Ottobre', 11 => 'Novembre', 12 => 'Dicembre'
         ];
-
         $meseNome = $mesiNomi[$mese];
+        
+        $this->info("📅 Processando spese del mese $meseDescrizione: $meseNome $anno");
 
         // Determina utenti da processare
         $utenti = $this->getUtentiDaProcessare($config);
@@ -101,25 +108,8 @@ class InviaSpeseMensili extends Command
 
     private function getUtentiDaProcessare(AutomazionePdf $config)
     {
-        $query = User::where('role', 'user');
-
-        if ($config->utenti_inclusi) {
-            $query->whereIn('id', $config->utenti_inclusi);
-        }
-
-        $utenti = $query->get();
-
-        if ($config->solo_con_spese) {
-            $meseScorso = now();
-            $utenti = $utenti->filter(function ($user) use ($meseScorso) {
-                return Spesa::where('user_id', $user->id)
-                    ->where('anno', $meseScorso->year)
-                    ->where('mese', $meseScorso->month)
-                    ->exists();
-            });
-        }
-
-        return $utenti;
+        // Sempre tutti gli utenti, nessun filtro
+        return User::get();
     }
 
     private function generaPdfPerUtenteConSplit($user, $anno, $mese, $meseNome, $config)
@@ -130,9 +120,6 @@ class InviaSpeseMensili extends Command
             ->orderBy('created_at')
             ->get();
 
-        if ($spese->isEmpty() && $config->solo_con_spese) {
-            return [];
-        }
 
         $pdfGenerati = [];
         $maxSizeBytes = 20 * 1024 * 1024; // 20MB

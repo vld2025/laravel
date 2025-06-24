@@ -837,6 +837,7 @@ class ComposerStaticInit88970a0117c062eed55fa8728fc43833
         'App\\Filament\\Resources\\AutomazionePdfResource\\Pages\\CreateAutomazionePdf' => __DIR__ . '/../..' . '/app/Filament/Resources/AutomazionePdfResource/Pages/CreateAutomazionePdf.php',
         'App\\Filament\\Resources\\AutomazionePdfResource\\Pages\\EditAutomazionePdf' => __DIR__ . '/../..' . '/app/Filament/Resources/AutomazionePdfResource/Pages/EditAutomazionePdf.php',
         'App\\Filament\\Resources\\AutomazionePdfResource\\Pages\\ListAutomazionePdfs' => __DIR__ . '/../..' . '/app/Filament/Resources/AutomazionePdfResource/Pages/ListAutomazionePdfs.php',
+        'App\\Filament\\Resources\\AutomazionePdfResource\\Widgets\\OrologioWidget' => __DIR__ . '/../..' . '/app/Filament/Resources/AutomazionePdfResource/Widgets/OrologioWidget.php',
         'App\\Filament\\Resources\\ClienteResource' => __DIR__ . '/../..' . '/app/Filament/Resources/ClienteResource.php',
         'App\\Filament\\Resources\\ClienteResource\\Pages\\CreateCliente' => __DIR__ . '/../..' . '/app/Filament/Resources/ClienteResource/Pages/CreateCliente.php',
         'App\\Filament\\Resources\\ClienteResource\\Pages\\EditCliente' => __DIR__ . '/../..' . '/app/Filament/Resources/ClienteResource/Pages/EditCliente.php',

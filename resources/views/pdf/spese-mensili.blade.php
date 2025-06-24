@@ -11,12 +11,12 @@
                 @php
                     try {
                         $imagick = new Imagick();
-                        $imagick->setResolution(100, 100);
+                        $imagick->setResolution(300, 300);
                         $imagick->readImage($filePath);
                         $imagick->resetIterator();
                         foreach ($imagick as $pageImage) {
                             $pageImage->setImageFormat('jpeg');
-                            $pageImage->setImageCompressionQuality(70);
+                            $pageImage->setImageCompressionQuality(95);
                             $imageData = base64_encode($pageImage->getImageBlob());
                             echo '<img src="data:image/jpeg;base64,' . $imageData . '" style="width:100%;height:auto;margin:0;padding:0;display:block;">';
                         }

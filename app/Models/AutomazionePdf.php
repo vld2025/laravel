@@ -15,20 +15,18 @@ class AutomazionePdf extends Model
         'email_destinatari',
         'email_oggetto',
         'email_messaggio',
-        'utenti_inclusi',
-        'solo_con_spese',
         'ultima_esecuzione',
         'ultimo_risultato',
+        'mese_riferimento',
     ];
 
     protected $casts = [
         'attiva' => 'boolean',
         'ora_invio' => 'datetime:H:i',
         'email_destinatari' => 'array',
-        'utenti_inclusi' => 'array',
-        'solo_con_spese' => 'boolean',
         'ultima_esecuzione' => 'datetime',
         'ultimo_risultato' => 'array',
+        'mese_riferimento',
     ];
 
     // Metodi helper
@@ -64,15 +62,11 @@ class AutomazionePdf extends Model
             ->day($this->giorno_invio)
             ->setTimeFromTimeString($this->ora_invio->format('H:i:s'));
 
-        // Verifica se è il momento giusto (±5 minuti di tolleranza)
-        $diff = abs($now->diffInMinutes($targetTime));
+        // Verifica se è esattamente il momento giusto
+        $currentMinute = $now->format('H:i');
+        $targetMinute = $targetTime->format('H:i');
         
-        // Non eseguire se già eseguito oggi
-        if ($this->ultima_esecuzione && $this->ultima_esecuzione->isToday()) {
-            return false;
-        }
-
-        return $diff <= 5;
+        return $currentMinute === $targetMinute;
     }
 
     public function getEmailDestinatariFormattedAttribute(): string
@@ -89,8 +83,6 @@ class AutomazionePdf extends Model
             'email_destinatari' => ['admin@vld.internet-box.ch'],
             'email_oggetto' => 'Spese Mensili VLD Service - {mese} {anno}',
             'email_messaggio' => 'In allegato trovate il riepilogo delle spese mensili con tutti i documenti allegati.',
-            'utenti_inclusi' => null, // tutti gli utenti
-            'solo_con_spese' => true,
         ];
     }
 }

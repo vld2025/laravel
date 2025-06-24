@@ -16,4 +16,11 @@ class EditAutomazionePdf extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    public function getHeaderWidgets(): array
+    {
+        return [
+            AutomazionePdfResource\Widgets\OrologioWidget::class,
+        ];
+    }
 }
