@@ -21,6 +21,14 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'telefono',
+        'indirizzo',
+        'taglia_giacca',
+        'taglia_pantaloni',
+        'taglia_maglietta',
+        'taglia_scarpe',
+        'note_abbigliamento',
     ];
 
     /**
@@ -44,5 +52,31 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // Metodi helper per i ruoli
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isManager(): bool
+    {
+        return $this->role === 'manager';
+    }
+
+    public function isUser(): bool
+    {
+        return $this->role === 'user';
+    }
+
+    public function canDeleteSensitiveData(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function canViewAllData(): bool
+    {
+        return $this->isAdmin() || $this->isManager();
     }
 }

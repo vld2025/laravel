@@ -11,8 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('sessions', function (Blueprint $table) {
+        Schema::create('commesse', function (Blueprint $table) {
             $table->id();
+            $table->string('nome'); // obbligatorio
+            $table->text('descrizione')->nullable();
+            $table->foreignId('cliente_id')->constrained('clienti')->onDelete('cascade'); // relazione obbligatoria
             $table->timestamps();
         });
     }
@@ -22,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('sessions');
+        Schema::dropIfExists('commesse');
     }
 };
