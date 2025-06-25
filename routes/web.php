@@ -17,4 +17,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/pdf/download/{filePath}', [App\Http\Controllers\PdfController::class, 'downloadPdf'])
         ->name('pdf.download')
         ->where('filePath', '.*');
+    
+    // Route per fatture PDF
+    Route::get('/pdf/fattura/{fattura}', [App\Http\Controllers\PdfController::class, 'generateFattura'])
+        ->name('pdf.fattura');
+    
+    Route::get('/pdf/fattura/{fattura}/qr', [App\Http\Controllers\PdfController::class, 'generateFattura'])
+        ->name('pdf.fattura-qr')
+        ->defaults('qr_bill', true);
 });

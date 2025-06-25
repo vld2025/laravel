@@ -14,15 +14,10 @@ use Filament\Tables\Table;
 class ImpostazioneFatturaResource extends Resource
 {
     protected static ?string $model = ImpostazioneFattura::class;
-    
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
-    
     protected static ?string $modelLabel = 'Impostazione Fattura';
-    
-    protected static ?string $pluralModelLabel = 'Impostazioni Fattura';
-    
+    protected static ?string $pluralModelLabel = 'Impostazioni Fatture';
     protected static ?string $navigationGroup = 'Amministrazione';
-    
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
@@ -38,41 +33,118 @@ class ImpostazioneFatturaResource extends Resource
                             ->unique(ignorable: fn ($record) => $record)
                             ->searchable(),
                     ])->columns(1),
-                
+
+                Forms\Components\Section::make('Tipo Fatturazione')
+                    ->schema([
+                        Forms\Components\Toggle::make('swiss_qr_bill')
+                            ->label('Swiss QR Bill')
+                            ->helperText('Attiva per usare QR Code svizzero nelle fatture')
+                            ->live(),
+                    ])->columns(1),
+
                 Forms\Components\Section::make('Dati Fatturazione')
                     ->schema([
+                        // Campi Fattura Normale (quando QR Bill OFF)
+                        Forms\Components\TextInput::make('qr_creditor_name')
+                            ->label('Nome Creditore')
+                            ->placeholder('Lascia vuoto per usare nome committente')
+                            ->visible(fn (Forms\Get $get) => !$get('swiss_qr_bill')),
+
                         Forms\Components\Textarea::make('indirizzo_fatturazione')
                             ->required()
                             ->rows(3)
-                            ->label('Indirizzo Fatturazione'),
-                        
+                            ->label('Indirizzo Fatturazione')
+                            ->visible(fn (Forms\Get $get) => !$get('swiss_qr_bill')),
+
                         Forms\Components\TextInput::make('partita_iva')
                             ->required()
-                            ->label('Partita IVA'),
-                        
+                            ->label('Partita IVA')
+                            ->visible(fn (Forms\Get $get) => !$get('swiss_qr_bill')),
+
                         Forms\Components\TextInput::make('iban')
                             ->required()
-                            ->label('IBAN'),
+                            ->label('IBAN')
+                            ->placeholder('CH93 0076 2011 6238 5295 7')
+                            ->visible(fn (Forms\Get $get) => !$get('swiss_qr_bill')),
+
+                        // Campi Swiss QR Bill (quando QR Bill ON)
+                        Forms\Components\TextInput::make('qr_creditor_name')
+                            ->required()
+                            ->label('Nome Creditore')
+                            ->placeholder('VLD Service GmbH')
+                            ->visible(fn (Forms\Get $get) => $get('swiss_qr_bill')),
+
+                        Forms\Components\TextInput::make('qr_creditor_address')
+                            ->required()
+                            ->label('Indirizzo Creditore')
+                            ->placeholder('Via Example 123')
+                            ->visible(fn (Forms\Get $get) => $get('swiss_qr_bill')),
+
+                        Forms\Components\TextInput::make('qr_creditor_postal_code')
+                            ->required()
+                            ->label('Codice Postale')
+                            ->placeholder('8000')
+                            ->visible(fn (Forms\Get $get) => $get('swiss_qr_bill')),
+
+                        Forms\Components\TextInput::make('qr_creditor_city')
+                            ->required()
+                            ->label('Città')
+                            ->placeholder('Zürich')
+                            ->visible(fn (Forms\Get $get) => $get('swiss_qr_bill')),
+
+                        Forms\Components\Select::make('qr_creditor_country')
+                            ->label('Paese')
+                            ->options([
+                                'CH' => 'Svizzera',
+                                'LI' => 'Liechtenstein',
+                                'DE' => 'Germania',
+                                'AT' => 'Austria',
+                                'FR' => 'Francia',
+                                'IT' => 'Italia'
+                            ])
+                            ->default('CH')
+                            ->visible(fn (Forms\Get $get) => $get('swiss_qr_bill')),
+
+                        Forms\Components\TextInput::make('iban')
+                            ->required()
+                            ->label('IBAN QR')
+                            ->placeholder('CH93 0076 2011 6238 5295 7')
+                            ->helperText('IBAN specifico per QR Bill')
+                            ->visible(fn (Forms\Get $get) => $get('swiss_qr_bill')),
+
+                        Forms\Components\TextInput::make('partita_iva')
+                            ->required()
+                            ->label('Partita IVA')
+                            ->visible(fn (Forms\Get $get) => $get('swiss_qr_bill')),
+
+                        Forms\Components\Textarea::make('qr_additional_info')
+                            ->label('Informazioni Aggiuntive')
+                            ->placeholder('Fattura per servizi di manutenzione')
+                            ->rows(2)
+                            ->visible(fn (Forms\Get $get) => $get('swiss_qr_bill')),
+
+                        Forms\Components\Textarea::make('qr_billing_info')
+                            ->label('Condizioni Pagamento')
+                            ->placeholder('Pagamento entro 30 giorni netti')
+                            ->rows(2)
+                            ->visible(fn (Forms\Get $get) => $get('swiss_qr_bill')),
                     ])->columns(2),
-                
+
                 Forms\Components\Section::make('Configurazioni')
                     ->schema([
-                        Forms\Components\Toggle::make('swiss_qr_bill')
-                            ->label('Swiss QR Bill'),
-                        
                         Forms\Components\Toggle::make('fatturazione_automatica')
                             ->label('Fatturazione Automatica'),
-                        
+
                         Forms\Components\TextInput::make('giorno_fatturazione')
                             ->numeric()
                             ->minValue(1)
                             ->maxValue(31)
                             ->label('Giorno Fatturazione (1-31)'),
-                        
+
                         Forms\Components\TagsInput::make('email_destinatari')
                             ->label('Email Destinatari'),
-                    ])->columns(4),
-                
+                    ])->columns(3),
+
                 Forms\Components\Section::make('Costi Base')
                     ->schema([
                         Forms\Components\TextInput::make('costo_orario')
@@ -80,48 +152,57 @@ class ImpostazioneFatturaResource extends Resource
                             ->numeric()
                             ->prefix('CHF')
                             ->label('Costo Orario'),
-                        
+
                         Forms\Components\TextInput::make('costo_km')
                             ->required()
                             ->numeric()
                             ->prefix('CHF')
                             ->label('Costo per Km'),
-                        
+
                         Forms\Components\TextInput::make('costo_pranzo')
                             ->numeric()
                             ->prefix('CHF')
                             ->label('Costo Pranzo'),
-                        
+
                         Forms\Components\TextInput::make('costo_trasferta')
                             ->numeric()
                             ->prefix('CHF')
                             ->label('Costo Trasferta'),
-                        
+
                         Forms\Components\TextInput::make('costo_fisso_intervento')
                             ->numeric()
                             ->prefix('CHF')
                             ->label('Costo Fisso Intervento'),
                     ])->columns(3),
-                
+
                 Forms\Components\Section::make('Percentuali')
                     ->schema([
                         Forms\Components\TextInput::make('percentuale_notturno')
                             ->numeric()
+                            ->minValue(0)
+                            ->maxValue(999)
+                            ->step(1)
+                            ->helperText("Massimo 999% - Solo numeri interi")
                             ->suffix('%')
-                            ->default(0)
-                            ->label('Maggiorazione Notturno'),
-                        
+                            ->label('Maggiorazione Notturna'),
+
                         Forms\Components\TextInput::make('percentuale_festivo')
                             ->numeric()
+                            ->minValue(0)
+                            ->maxValue(999)
+                            ->step(1)
+                            ->helperText("Massimo 999% - Solo numeri interi")
                             ->suffix('%')
-                            ->default(0)
-                            ->label('Maggiorazione Festivo'),
-                        
+                            ->label('Maggiorazione Festiva'),
+
                         Forms\Components\TextInput::make('sconto_percentuale')
                             ->numeric()
+                            ->minValue(0)
+                            ->maxValue(999)
+                            ->step(1)
+                            ->helperText("Massimo 999% - Solo numeri interi")
                             ->suffix('%')
-                            ->default(0)
-                            ->label('Sconto'),
+                            ->label('Sconto Percentuale'),
                     ])->columns(3),
             ]);
     }
@@ -132,30 +213,27 @@ class ImpostazioneFatturaResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('committente.nome')
                     ->label('Committente')
-                    ->searchable()
-                    ->sortable(),
-                
-                Tables\Columns\TextColumn::make('costo_orario')
-                    ->label('CHF/ora')
-                    ->prefix('CHF ')
-                    ->numeric(2),
-                
-                Tables\Columns\TextColumn::make('costo_km')
-                    ->label('CHF/km')
-                    ->prefix('CHF ')
-                    ->numeric(2),
-                
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('partita_iva')
+                    ->label('Partita IVA'),
+
                 Tables\Columns\IconColumn::make('swiss_qr_bill')
                     ->label('QR Bill')
                     ->boolean(),
-                
+
                 Tables\Columns\IconColumn::make('fatturazione_automatica')
                     ->label('Auto')
                     ->boolean(),
-                
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Aggiornato')
-                    ->dateTime('d/m/Y H:i')
+
+                Tables\Columns\TextColumn::make('costo_orario')
+                    ->label('€/h')
+                    ->prefix('CHF ')
+                    ->numeric(),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Creato')
+                    ->dateTime()
                     ->sortable(),
             ])
             ->filters([
@@ -181,8 +259,34 @@ class ImpostazioneFatturaResource extends Resource
         ];
     }
 
+    public static function canCreate(): bool
+    {
+        return auth()->user()->isAdmin();
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()->isAdmin();
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()->isAdmin();
+    }
+
     public static function canViewAny(): bool
     {
-        return auth()->user()?->canViewAllData() ?? false;
+        return auth()->user()->isAdmin();
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $count = static::getModel()::count();
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return static::getNavigationBadge() ? "primary" : null;
     }
 }

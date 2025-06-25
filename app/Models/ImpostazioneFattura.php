@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ImpostazioneFattura extends Model
 {
+    use HasFactory;
+
     protected $table = 'impostazioni_fattura';
 
     protected $fillable = [
@@ -26,12 +29,29 @@ class ImpostazioneFattura extends Model
         'percentuale_notturno',
         'percentuale_festivo',
         'sconto_percentuale',
+        // Campi Swiss QR Bill
+        'qr_creditor_name',
+        'qr_creditor_address',
+        'qr_creditor_postal_code',
+        'qr_creditor_city',
+        'qr_creditor_country',
+        'qr_additional_info',
+        'qr_billing_info',
+    ];
+
+    protected $attributes = [
+        'percentuale_notturno' => 0,
+        'percentuale_festivo' => 0,
+        'sconto_percentuale' => 0,
+        'swiss_qr_bill' => false,
+        'fatturazione_automatica' => false,
+        'qr_creditor_country' => 'CH',
     ];
 
     protected $casts = [
+        'email_destinatari' => 'array',
         'swiss_qr_bill' => 'boolean',
         'fatturazione_automatica' => 'boolean',
-        'email_destinatari' => 'array',
         'costo_orario' => 'decimal:2',
         'costo_km' => 'decimal:2',
         'costo_pranzo' => 'decimal:2',
@@ -42,39 +62,8 @@ class ImpostazioneFattura extends Model
         'sconto_percentuale' => 'decimal:2',
     ];
 
-    // Relazione
     public function committente(): BelongsTo
     {
         return $this->belongsTo(Committente::class);
-    }
-
-    // Metodi helper per calcoli fatturazione
-    public function calcolaImportoOre(float $ore, bool $notturno = false, bool $festivo = false): float
-    {
-        $importo = $ore * $this->costo_orario;
-        
-        if ($notturno) {
-            $importo += $importo * ($this->percentuale_notturno / 100);
-        }
-        
-        if ($festivo) {
-            $importo += $importo * ($this->percentuale_festivo / 100);
-        }
-        
-        return $importo;
-    }
-
-    public function calcolaImportoKm(int $km): float
-    {
-        return $km * $this->costo_km;
-    }
-
-    public function applicaSconto(float $importo): float
-    {
-        if ($this->sconto_percentuale > 0) {
-            return $importo - ($importo * ($this->sconto_percentuale / 100));
-        }
-        
-        return $importo;
     }
 }

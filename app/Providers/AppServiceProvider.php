@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Models\SpesaExtra;
+use App\Observers\SpesaExtraObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Observer registration per SpesaExtra
+        SpesaExtra::observe(SpesaExtraObserver::class);
     }
 }

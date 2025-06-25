@@ -1,0 +1,108 @@
+<?php
+
+namespace App\Exports;
+
+use App\Models\Report;
+use App\Models\ImpostazioneFattura;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use Carbon\Carbon;
+
+class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
+{
+    protected $committente_id;
+    protected $anno;
+    protected $mese;
+    protected $periodo_inizio;
+    protected $periodo_fine;
+
+    public function __construct($committente_id, $anno, $mese)
+    {
+        $this->committente_id = $committente_id;
+        $this->anno = $anno;
+        $this->mese = $mese;
+        $this->calcolaPeriodoFatturazione();
+    }
+
+    private function calcolaPeriodoFatturazione()
+    {
+        $impostazioni = ImpostazioneFattura::where('committente_id', $this->committente_id)->first();
+        $giorno_fatturazione = $impostazioni ? $impostazioni->giorno_fatturazione : 20;
+
+        $mese_precedente = $this->mese == 1 ? 12 : $this->mese - 1;
+        $anno_precedente = $this->mese == 1 ? $this->anno - 1 : $this->anno;
+
+        $this->periodo_inizio = Carbon::create($anno_precedente, $mese_precedente, $giorno_fatturazione)->addDay();
+        $this->periodo_fine = Carbon::create($this->anno, $this->mese, $giorno_fatturazione);
+    }
+
+    public function collection()
+    {
+        return Report::with(['user', 'committente', 'cliente', 'commessa'])
+            ->where('committente_id', $this->committente_id)
+            ->whereBetween('data', [$this->periodo_inizio, $this->periodo_fine])
+            ->orderBy('data')
+            ->orderBy('user_id')
+            ->get();
+    }
+
+    public function headings(): array
+    {
+        return [
+            'Data',
+            'Utente',
+            'Cliente',
+            'Commessa',
+            'Ore Lavorate',
+            'Ore Viaggio',
+            'Totale Ore',
+            'Km Auto',
+            'Auto Privata',
+            'Notturno',
+            'Trasferta',
+            'Descrizione Lavori',
+            'Stato Fatturazione'
+        ];
+    }
+
+    public function map($report): array
+    {
+        return [
+            $report->data->format('d/m/Y'),
+            $report->user->name,
+            $report->cliente->nome,
+            $report->commessa->nome,
+            $report->ore_lavorate,
+            $report->ore_viaggio,
+            $report->ore_lavorate + $report->ore_viaggio,
+            $report->km_auto,
+            $report->auto_privata ? 'Sì' : 'No',
+            $report->notturno ? 'Sì' : 'No',
+            $report->trasferta ? 'Sì' : 'No',
+            $report->descrizione_it ?? $report->descrizione_lavori,
+            $report->fatturato ? 'Fatturato' : 'Da fatturare'
+        ];
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        return [
+            1 => [
+                'font' => ['bold' => true, 'size' => 12],
+                'fill' => [
+                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'E2E8F0']
+                ],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical' => Alignment::VERTICAL_CENTER
+                ]
+            ]
+        ];
+    }
+}

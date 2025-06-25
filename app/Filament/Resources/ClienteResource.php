@@ -115,6 +115,17 @@ class ClienteResource extends Resource
         ];
     }
 
+    public static function getNavigationBadge(): ?string
+    {
+        $count = static::getModel()::count();
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return static::getNavigationBadge() ? "primary" : null;
+    }
+
     public static function canViewAny(): bool
     {
         return auth()->user()?->canViewAllData() ?? false;

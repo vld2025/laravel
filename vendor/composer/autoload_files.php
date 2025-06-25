@@ -41,6 +41,7 @@ return array(
     '9261e07cd92c53dcc971c7c88c176c04' => $vendorDir . '/danharrin/date-format-converter/src/helpers.php',
     '9720327d09ed9a4ba00c9b5071b71c7d' => $vendorDir . '/danharrin/date-format-converter/src/standards.php',
     '2ad94ea6f6f6013119e9abcf4e302a08' => $vendorDir . '/filament/forms/src/helpers.php',
+    '2cffec82183ee1cea088009cef9a6fc3' => $vendorDir . '/ezyang/htmlpurifier/library/HTMLPurifier.composer.php',
     'b69d5f1f95cd1ed438c038b6cbcc45b5' => $vendorDir . '/filament/notifications/src/Testing/Autoload.php',
     '2ceb5c5a6fb4dfb2119b186b81970c21' => $vendorDir . '/laravel-lang/routes/helpers/functions.php',
     '6124b4c8570aa390c21fafd04a26c69f' => $vendorDir . '/myclabs/deep-copy/src/DeepCopy/deep_copy.php',
@@ -50,5 +51,6 @@ return array(
     'c72349b1fe8d0deeedd3a52e8aa814d8' => $vendorDir . '/mockery/mockery/library/helpers.php',
     'ce9671a430e4846b44e1c68c7611f9f5' => $vendorDir . '/mockery/mockery/library/Mockery.php',
     'a1cfe24d14977df6878b9bf804af2d1c' => $vendorDir . '/nunomaduro/collision/src/Adapters/Phpunit/Autoload.php',
+    '61ba3e92ef91a7a0f1cc260ebd9290e4' => $vendorDir . '/openai-php/client/src/OpenAI.php',
     'ec07570ca5a812141189b1fa81503674' => $vendorDir . '/phpunit/phpunit/src/Framework/Assert/Functions.php',
 );

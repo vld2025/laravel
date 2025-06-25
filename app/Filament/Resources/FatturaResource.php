@@ -154,6 +154,28 @@ class FatturaResource extends Resource
                     ->relationship('committente', 'nome'),
             ])
             ->actions([
+                Tables\Actions\Action::make('pdf_normale')
+                    ->label('Export PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->url(fn (\App\Models\Fattura $record): string => route('pdf.fattura', $record))
+                    ->openUrlInNewTab()
+                    ->color('info')
+                    ->visible(function (\App\Models\Fattura $record): bool {
+                        $impostazioni = \App\Models\ImpostazioneFattura::where('committente_id', $record->committente_id)->first();
+                        return !($impostazioni?->swiss_qr_bill ?? false);
+                    }),
+
+                Tables\Actions\Action::make('pdf_qr_bill')
+                    ->label('PDF QR Bill')
+                    ->icon('heroicon-o-qr-code')
+                    ->url(fn (\App\Models\Fattura $record): string => route('pdf.fattura-qr', $record))
+                    ->openUrlInNewTab()
+                    ->color('success')
+                    ->visible(function (\App\Models\Fattura $record): bool {
+                        $impostazioni = \App\Models\ImpostazioneFattura::where('committente_id', $record->committente_id)->first();
+                        return $impostazioni?->swiss_qr_bill ?? false;
+                    }),
+
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
@@ -177,5 +199,16 @@ class FatturaResource extends Resource
     public static function canViewAny(): bool
     {
         return auth()->user()?->canViewAllData() ?? false;
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $count = static::getModel()::count();
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return static::getNavigationBadge() ? "primary" : null;
     }
 }

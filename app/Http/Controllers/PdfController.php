@@ -160,4 +160,81 @@ class PdfController extends Controller
         
         return Storage::disk('public')->download($filePath);
     }
+
+    /**
+     * Genera PDF fattura con opzione Swiss QR Bill
+     */
+    public function generateFattura(Request $request, $fatturaId)
+    {
+        $fattura = \App\Models\Fattura::with(['committente'])->findOrFail($fatturaId);
+        $impostazioni = \App\Models\ImpostazioneFattura::where('committente_id', $fattura->committente_id)->first();
+        
+        if (!$impostazioni) {
+            abort(404, 'Impostazioni fatturazione non trovate per questo committente');
+        }
+
+        // Verifica permessi
+        if (!auth()->user()->canViewAllData()) {
+            abort(403, 'Non autorizzato a generare fatture');
+        }
+
+        $useQrBill = ($request->get("qr_bill", false) || $request->route()->getName() === "pdf.fattura-qr") && $impostazioni->swiss_qr_bill;
+        $qrCode = null;
+
+        // Genera Swiss QR Bill se richiesto
+        if ($useQrBill) {
+            $qrCode = $this->generateSwissQrBill($fattura, $impostazioni);
+        }
+
+        // Array mesi in italiano
+        $mesi = [
+            1 => 'Gennaio', 2 => 'Febbraio', 3 => 'Marzo', 4 => 'Aprile',
+            5 => 'Maggio', 6 => 'Giugno', 7 => 'Luglio', 8 => 'Agosto',
+            9 => 'Settembre', 10 => 'Ottobre', 11 => 'Novembre', 12 => 'Dicembre'
+        ];
+
+        // Genera PDF
+        $pdf = Pdf::loadView('pdf.fattura', [
+            'fattura' => $fattura,
+            'impostazioni' => $impostazioni,
+            'qrCode' => $qrCode,
+            'mesi' => $mesi
+        ]);
+
+        $pdf->setPaper('A4');
+        
+        $filename = "fattura_{$fattura->numero}" . ($useQrBill ? '_qr' : '') . ".pdf";
+        
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Genera Swiss QR Bill per la fattura
+     */
+    private function generateSwissQrBill(\App\Models\Fattura $fattura, \App\Models\ImpostazioneFattura $impostazioni): string
+    {
+        $qrBillService = new \App\Services\SwissQrBillService();
+        
+        // Prepara i dati per il QR Bill
+        $qrData = [
+            'iban' => $impostazioni->iban,
+            'creditor_name' => $impostazioni->qr_creditor_name ?? $impostazioni->committente->nome,
+            'creditor_address' => $impostazioni->qr_creditor_address,
+            'creditor_postal_code' => $impostazioni->qr_creditor_postal_code,
+            'creditor_city' => $impostazioni->qr_creditor_city,
+            'creditor_country' => $impostazioni->qr_creditor_country,
+            'amount' => number_format($fattura->totale, 2, '.', ''),
+            'currency' => 'CHF',
+            'debtor_name' => $fattura->committente->nome,
+            'debtor_address' => $fattura->committente->indirizzo ?? '',
+            'debtor_postal_code' => '',
+            'debtor_city' => '',
+            'debtor_country' => 'CH',
+            'reference' => $qrBillService->generateQrReference($fattura->committente_id, str_replace('-', '', $fattura->numero)),
+            'additional_info' => $impostazioni->qr_additional_info ?? "Fattura {$fattura->numero}",
+            'billing_info' => $impostazioni->qr_billing_info ?? ''
+        ];
+
+        return $qrBillService->generateQrBill($qrData);
+    }
 }

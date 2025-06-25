@@ -120,4 +120,15 @@ class CommessaResource extends Resource
     {
         return auth()->user()?->canViewAllData() ?? false;
     }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $count = static::getModel()::count();
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return static::getNavigationBadge() ? "primary" : null;
+    }
 }
