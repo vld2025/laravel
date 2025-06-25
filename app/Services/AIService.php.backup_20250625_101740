@@ -5,8 +5,6 @@ namespace App\Services;
 use OpenAI;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use Imagick;
-use ImagickException;
 
 class AIService
 {
@@ -40,25 +38,17 @@ class AIService
                 'file_size' => strlen($fileContent)
             ]);
 
-            // Se è un PDF, convertilo in immagine
+            // PDF handling
             if ($mimeType === 'application/pdf' || str_ends_with(strtolower($filePath), '.pdf')) {
-                Log::info('Converting PDF to image');
-                
-                $imageData = $this->convertPdfToImage($fileContent);
-                if (!$imageData) {
-                    throw new \Exception('Errore nella conversione PDF→immagine');
-                }
-                
-                $fileContent = $imageData['content'];
-                $mimeType = $imageData['mime_type'];
-                
-                Log::info('PDF converted successfully', [
-                    'new_mime_type' => $mimeType,
-                    'new_size' => strlen($fileContent)
-                ]);
+                return [
+                    'importo' => null,
+                    'descrizione' => 'PDF caricato - elaborazione manuale richiesta',
+                    'success' => true,
+                    'error' => null
+                ];
             }
             
-            // Processa come immagine
+            // Image processing
             $base64 = base64_encode($fileContent);
             
             $supportedMimeTypes = [
@@ -93,19 +83,7 @@ class AIService
                         'content' => [
                             [
                                 'type' => 'text',
-                                'text' => 'Analizza questa ricevuta/fattura e estrai le seguenti informazioni in formato JSON:
-                                {
-                                    "importo": numero_decimale,
-                                    "descrizione": "descrizione_italiana_breve",
-                                    "data": "YYYY-MM-DD se visibile",
-                                    "fornitore": "nome_fornitore se visibile"
-                                }
-                                
-                                Regole:
-                                - Importo deve essere solo numero decimale (es: 125.50)
-                                - Descrizione breve in italiano
-                                - Se non trovi un dato, metti null
-                                - Rispondi SOLO con JSON, nient\'altro'
+                                'text' => 'Analizza questa ricevuta e estrai JSON: {"importo": numero_decimale, "descrizione": "descrizione_italiana_breve"}. Solo JSON, nient\'altro.'
                             ],
                             [
                                 'type' => 'image_url',
@@ -116,7 +94,7 @@ class AIService
                         ]
                     ]
                 ],
-                'max_tokens' => 500,
+                'max_tokens' => 300,
                 'temperature' => 0.1
             ]);
             
@@ -135,8 +113,6 @@ class AIService
             $result = [
                 'importo' => isset($data['importo']) && is_numeric($data['importo']) ? (float)$data['importo'] : null,
                 'descrizione' => $data['descrizione'] ?? null,
-                'data' => $data['data'] ?? null,
-                'fornitore' => $data['fornitore'] ?? null,
                 'success' => true,
                 'raw_response' => $content
             ];
@@ -145,9 +121,7 @@ class AIService
             return $result;
             
         } catch (\Exception $e) {
-            Log::error('AI Service Error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
+            Log::error('AI Service Error: ' . $e->getMessage());
             
             return [
                 'importo' => null,
@@ -155,44 +129,6 @@ class AIService
                 'success' => false,
                 'error' => $e->getMessage()
             ];
-        }
-    }
-
-    private function convertPdfToImage(string $pdfContent): ?array
-    {
-        try {
-            $imagick = new Imagick();
-            
-            // Configura per migliore qualità
-            $imagick->setResolution(200, 200);
-            
-            // Carica il PDF dalla stringa
-            $imagick->readImageBlob($pdfContent);
-            
-            // Prendi solo la prima pagina
-            $imagick->setIteratorIndex(0);
-            
-            // Converti in formato PNG per migliore qualità OCR
-            $imagick->setImageFormat('png');
-            
-            // Migliora contrasto per OCR
-            $imagick->contrastImage(true);
-            $imagick->sharpenImage(0, 1);
-            
-            // Ottieni i dati dell'immagine
-            $imageBlob = $imagick->getImageBlob();
-            
-            $imagick->clear();
-            $imagick->destroy();
-            
-            return [
-                'content' => $imageBlob,
-                'mime_type' => 'image/png'
-            ];
-            
-        } catch (ImagickException $e) {
-            Log::error('PDF to Image conversion error: ' . $e->getMessage());
-            return null;
         }
     }
     

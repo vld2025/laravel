@@ -54,9 +54,7 @@ class SpesaExtraResource extends Resource
                             ->maxSize(50 * 1024) // 50MB
                             ->directory('spese-extra')
                             ->label('File Spesa')
-                            ->helperText('Carica una foto o PDF della ricevuta. L\'AI estrarrà automaticamente importo e descrizione.')
-                            ->previewable()
-                            ->downloadable(),
+                            ->helperText('Carica una foto o PDF della ricevuta. L\'AI estrarrà automaticamente importo e descrizione.'),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Dati Estratti da AI')

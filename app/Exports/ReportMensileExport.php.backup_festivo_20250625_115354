@@ -76,9 +76,7 @@ class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, 
             'Totale Ore',
             'Km Auto',
             'Notturno',
-            'Trasferta',
-            'Festivo',
-            'Festivo'
+            'Trasferta'
         ];
     }
 
@@ -108,9 +106,7 @@ class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, 
             $report->ore_lavorate + $report->ore_viaggio,
             $report->km_auto,
             $report->notturno ? 'Sì' : 'No',
-            $report->trasferta ? 'Sì' : 'No',
-            $report->festivo ? 'Sì' : 'No',
-            $report->festivo ? 'Sì' : 'No'
+            $report->trasferta ? 'Sì' : 'No'
         ];
     }
 
@@ -132,7 +128,6 @@ class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, 
                 $totale_ore_viaggio = $this->data_collection ? $this->data_collection->sum('ore_viaggio') : 0;
                 $totale_ore = $totale_ore_lavorate + $totale_ore_viaggio;
                 $totale_km = $this->data_collection ? $this->data_collection->sum('km_auto') : 0;
-                $totale_trasferte = $this->data_collection ? $this->data_collection->where('trasferta', true)->count() : 0;
 
                 // Aggiungi riga totali
                 $sheet->setCellValue('A' . $totalRow, 'TOTALI');
@@ -141,8 +136,7 @@ class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, 
                 $sheet->setCellValue('G' . $totalRow, $totale_ore);
                 $sheet->setCellValue('H' . $totalRow, $totale_km);
                 $sheet->setCellValue('I' . $totalRow, ''); // Colonna Notturno vuota
-                $sheet->setCellValue('J' . $totalRow, $totale_trasferte); // Conteggio trasferte
-                $sheet->setCellValue('K' . $totalRow, ''); // Colonna Festivo vuota
+                $sheet->setCellValue('J' . $totalRow, ''); // Colonna Trasferta vuota
             },
         ];
     }
@@ -170,8 +164,8 @@ class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, 
                     ],
                 ]
             ],
-            // TUTTA la riga totali con sfondo giallo (A-K)
-            'A' . $totalRow . ':K' . $totalRow => [
+            // TUTTA la riga totali con sfondo giallo (A-J)
+            'A' . $totalRow . ':J' . $totalRow => [
                 'font' => ['bold' => true, 'size' => 11],
                 'fill' => [
                     'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
@@ -188,7 +182,7 @@ class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, 
                 ]
             ],
             // Bordi per tutti i dati
-            'A1:K' . $totalRow => [
+            'A1:J' . $totalRow => [
                 'borders' => [
                     'allBorders' => [
                         'borderStyle' => Border::BORDER_THIN,

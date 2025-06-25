@@ -29,6 +29,7 @@ class Report extends Model
         'ore_lavorate_fatturazione',
         'ore_viaggio_fatturazione',
         'fatturato',
+        'festivo',
     ];
 
     protected $casts = [
@@ -41,6 +42,7 @@ class Report extends Model
         'notturno' => 'boolean',
         'trasferta' => 'boolean',
         'fatturato' => 'boolean',
+        'festivo' => 'boolean',
     ];
 
     // Relazioni

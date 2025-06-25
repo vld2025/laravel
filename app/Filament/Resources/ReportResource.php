@@ -192,6 +192,25 @@ class ReportResource extends Resource
                     ->label('Ore Viag.')
                     ->suffix(' h'),
 
+                Tables\Columns\IconColumn::make('festivo')
+                    ->label('Festivo')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-calendar')
+                    ->falseIcon('heroicon-o-minus')
+                    ->trueColor('warning')
+                    ->falseColor('gray'),
+
+                Tables\Columns\TextColumn::make('diff_fatturazione')
+                    ->label('Diff. Fatt.') 
+                    ->getStateUsing(function (Report $record) {
+                        $diffOre = ($record->ore_lavorate_fatturazione ?? $record->ore_lavorate) - $record->ore_lavorate;
+                        $diffViaggio = ($record->ore_viaggio_fatturazione ?? $record->ore_viaggio) - $record->ore_viaggio;
+                        $totalDiff = $diffOre + $diffViaggio;
+                        return $totalDiff != 0 ? sprintf('%+.1f h', $totalDiff) : '='; 
+                    })
+                    ->color(fn (string $state): string => $state === '=' ? 'gray' : ('warning'))
+                    ->visible(fn () => auth()->user()?->canViewAllData()),
+
                 Tables\Columns\IconColumn::make('fatturato')
                     ->label('Fatturato')
                     ->boolean()
