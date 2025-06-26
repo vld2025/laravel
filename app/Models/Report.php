@@ -29,6 +29,10 @@ class Report extends Model
         'ore_lavorate_fatturazione',
         'ore_viaggio_fatturazione',
         'fatturato',
+        'descrizione_it',
+        'descrizione_en',
+        'descrizione_de',
+        'descrizione_ru',
         'festivo',
     ];
 

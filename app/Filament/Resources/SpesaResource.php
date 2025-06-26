@@ -208,7 +208,11 @@ class SpesaResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = static::getModel()::count();
+        $query = static::getModel()::query();
+        if (!auth()->user()?->canViewAllData()) {
+            $query->where('user_id', auth()->id());
+        }
+        $count = $query->count();
         return $count > 0 ? (string) $count : null;
     }
 

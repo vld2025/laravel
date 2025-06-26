@@ -6,4 +6,10 @@
                  ->hourly()
                  ->withoutOverlapping()
                  ->appendOutputTo(storage_path('logs/automazione-pdf.log'));
+        
+        // Controlla automazione Report ogni ora
+        $schedule->command('report:invia-giornalieri')
+                 ->hourly()
+                 ->withoutOverlapping()
+                 ->appendOutputTo(storage_path('logs/automazione-report.log'));
     }

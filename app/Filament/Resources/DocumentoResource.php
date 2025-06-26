@@ -140,7 +140,14 @@ class DocumentoResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = static::getModel()::count();
+        if (!auth()->user()?->canViewAllData()) {
+        $query = static::getModel()::query();
+            $query->where(function ($q) {
+                $q->where('user_id', auth()->id())
+                  ->orWhere('tipo', 'aziendale');
+            });
+        }
+        $count = $query->count();
         return $count > 0 ? (string) $count : null;
     }
 

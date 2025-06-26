@@ -30,10 +30,8 @@ class ReportObserver
      */
     public function created(Report $report): void
     {
-        // DISABILITATO: Generazione automatica AI rimossa
-        //         // Genera report multilingua dopo la creazione
-        // DISABILITATO: Generazione automatica AI rimossa
-        //         $this->generateMultilingualReport($report);
+        // Genera report multilingua dopo la creazione
+        $this->generateMultilingualReport($report);
     }
 
     /**
@@ -55,14 +53,12 @@ class ReportObserver
 
     /**
      * Handle the Report "updated" event.
-            // DISABILITATO: Generazione automatica AI rimossa
-            //      */
+     */
     public function updated(Report $report): void
     {
         // Se la descrizione lavori è cambiata, rigenera i report
         if ($report->wasChanged('descrizione_lavori') && !empty($report->descrizione_lavori)) {
-            // DISABILITATO: Generazione automatica AI rimossa
-            //             $this->generateMultilingualReport($report);
+            $this->generateMultilingualReport($report);
         }
     }
 

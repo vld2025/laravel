@@ -161,88 +161,6 @@ class ReportResource extends Resource
                 Forms\Components\Section::make('Report AI Generati')
                     ->description('Report professionali generati automaticamente da ChatGPT in 4 lingue')
                     ->schema([
-                        Forms\Components\Actions::make([
-                            Forms\Components\Actions\Action::make('generate_ai')
-                                ->label('Genera Report AI')
-                                ->icon('heroicon-o-cpu-chip')
-                                ->color('info')
-                                ->visible(fn () => auth()->user()?->canViewAllData())
-                                ->form([
-                                    Forms\Components\Toggle::make('includi_dettagli_ore')
-                                        ->label('Includi Dettagli Ore e Km')
-                                        ->helperText('Includi ore lavorate, ore viaggio e chilometri nel report AI')
-                                        ->default(true),
-                                ])
-                                ->action(function ($record, array $data, $livewire) {
-                                    if (empty($record->descrizione_lavori)) {
-                                        \Filament\Notifications\Notification::make()
-                                            ->title('Errore')
-                                            ->body('Inserisci prima una descrizione del lavoro')
-                                            ->warning()
-                                            ->send();
-                                        return;
-                                    }
-
-                                    $reportGenerator = app(\App\Services\ReportGeneratorService::class);
-
-                                    if (!$reportGenerator->isConfigured()) {
-                                        \Filament\Notifications\Notification::make()
-                                            ->title('AI non configurata')
-                                            ->body('Configura la chiave OpenAI per utilizzare questa funzione')
-                                            ->warning()
-                                            ->send();
-                                        return;
-                                    }
-
-                                    $result = $reportGenerator->generateProfessionalReport($record, $data['includi_dettagli_ore'] ?? true);
-
-                                    if ($result['success']) {
-                                        $updateData = [];
-
-                                        if (!empty($result['reports']['it'])) {
-                                            $updateData['descrizione_it'] = $result['reports']['it'];
-                                        }
-
-                                        if (!empty($result['reports']['en'])) {
-                                            $updateData['descrizione_en'] = $result['reports']['en'];
-                                        }
-
-                                        if (!empty($result['reports']['de'])) {
-                                            $updateData['descrizione_de'] = $result['reports']['de'];
-                                        }
-
-                                        if (!empty($result['reports']['ru'])) {
-                                            $updateData['descrizione_ru'] = $result['reports']['ru'];
-                                        }
-
-                                        if (!empty($updateData)) {
-                                            $record->update($updateData);
-                                            
-                                            // Refresh del form
-                                            $livewire->form->fill($record->toArray());
-
-                                            \Filament\Notifications\Notification::make()
-                                                ->title('Report AI Generati!')
-                                                ->body('I report sono stati generati in ' . count($updateData) . ' lingue')
-                                                ->success()
-                                                ->send();
-                                        } else {
-                                            \Filament\Notifications\Notification::make()
-                                                ->title('Nessun report generato')
-                                                ->body('L\'AI non è riuscita a generare report utili')
-                                                ->warning()
-                                                ->send();
-                                        }
-                                    } else {
-                                        \Filament\Notifications\Notification::make()
-                                            ->title('Errore generazione')
-                                            ->body($result['error'] ?? 'Errore sconosciuto')
-                                            ->danger()
-                                            ->send();
-                                    }
-                                })
-                        ])->columnSpanFull(),
-                        
                         Forms\Components\Tabs::make('Report Lingue')
                             ->tabs([
                                 Forms\Components\Tabs\Tab::make('🇮🇹 Italiano')
@@ -349,15 +267,13 @@ class ReportResource extends Resource
                     ->trueIcon('heroicon-o-cpu-chip')
                     ->falseIcon('heroicon-o-minus')
                     ->trueColor('success')
-                    ->falseColor('gray')
-                    ->visible(fn () => auth()->user()?->canViewAllData()),
+                    ->falseColor('gray'),
 
                 Tables\Columns\IconColumn::make('fatturato')
                     ->label('Fatturato')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
-                    ->visible(fn () => auth()->user()?->canViewAllData())
                     ->trueColor('success')
                     ->falseColor('warning'),
             ])
@@ -419,7 +335,6 @@ class ReportResource extends Resource
                     }),
             ])
             ->actions([
-                /* SPOSTATO NELLA SEZIONE REPORT AI
                 Tables\Actions\Action::make('generate_ai')
                     ->label('Genera Report AI')
                     ->icon('heroicon-o-cpu-chip')
@@ -497,7 +412,6 @@ class ReportResource extends Resource
                         }
                     }),
 
-                */
                 Tables\Actions\EditAction::make()
                     ->visible(fn (Report $record) => $record->canUserEdit(auth()->user())),
                 Tables\Actions\DeleteAction::make()
@@ -542,11 +456,7 @@ class ReportResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $query = static::getModel()::query();
-        if (!auth()->user()?->canViewAllData()) {
-            $query->where('user_id', auth()->id());
-        }
-        $count = $query->count();
+        $count = static::getModel()::count();
         return $count > 0 ? (string) $count : null;
     }
 

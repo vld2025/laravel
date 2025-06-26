@@ -1,0 +1,270 @@
+<?php
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+use App\Models\AutomazioneReport;
+use App\Models\Report;
+use App\Services\ReportGeneratorService;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
+
+class InviaReportGiornalieri extends Command
+{
+    protected $signature = 'report:invia-giornalieri {--force : Forza l\'invio ignorando le condizioni}';
+
+    protected $description = 'Invia i report giornalieri via email secondo le configurazioni impostate';
+
+    protected $reportGenerator;
+
+    public function __construct(ReportGeneratorService $reportGenerator)
+    {
+        parent::__construct();
+        $this->reportGenerator = $reportGenerator;
+    }
+
+    public function handle()
+    {
+        $this->info('🚀 Avvio invio report giornalieri...');
+
+        // Trova tutte le configurazioni attive
+        $automazioni = AutomazioneReport::where('attivo', true)->get();
+
+        if ($automazioni->isEmpty()) {
+            $this->warn('⚠️  Nessuna automazione attiva trovata.');
+            return Command::SUCCESS;
+        }
+
+        $this->info("📋 Trovate {$automazioni->count()} automazioni attive");
+
+        $invii_effettuati = 0;
+
+        foreach ($automazioni as $automazione) {
+            try {
+                if ($this->option('force') || $automazione->shouldSendNow()) {
+                    $this->line("📧 Elaborando: {$automazione->nome}");
+                    
+                    if ($this->inviaReportPerAutomazione($automazione)) {
+                        $invii_effettuati++;
+                        $automazione->markAsSent();
+                        $this->info("✅ Inviato con successo: {$automazione->nome}");
+                    } else {
+                        $this->error("❌ Errore nell'invio: {$automazione->nome}");
+                    }
+                } else {
+                    $this->line("⏭️  Saltando: {$automazione->nome} (non è il momento giusto)");
+                }
+            } catch (\Exception $e) {
+                $this->error("❌ Errore per {$automazione->nome}: " . $e->getMessage());
+                Log::error("Errore invio report automazione {$automazione->id}", [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+        }
+
+        $this->info("🎉 Processo completato. Report inviati: {$invii_effettuati}");
+
+        return Command::SUCCESS;
+    }
+
+    private function inviaReportPerAutomazione(AutomazioneReport $automazione): bool
+    {
+        try {
+            // Ottieni i report di ieri (o oggi se force)
+            $data_report = $this->option('force') ? now() : yesterday();
+            
+            $this->line("📅 Cercando report per il {$data_report->format('d/m/Y')}");
+
+            // SEMPRE tutti i report del giorno - nessuna selezione
+            $reports = Report::with(['user', 'committente', 'cliente', 'commessa'])
+                ->whereDate('data', $data_report)
+                ->orderBy('user_id')
+                ->orderBy('created_at')
+                ->get();
+
+            if ($reports->isEmpty()) {
+                $this->warn("⚠️  Nessun report trovato per il {$data_report->format('d/m/Y')}");
+                return false;
+            }
+
+            $this->line("📊 Trovati {$reports->count()} report");
+
+            // Se raggruppamento attivo: UNA email con tutti i report
+            if ($automazione->raggruppa_per_giorno) {
+                return $this->inviaEmailRaggruppata($automazione, $reports, $data_report);
+            } else {
+                // Altrimenti: email separate per ogni utente
+                return $this->inviaEmailSeparate($automazione, $reports, $data_report);
+            }
+
+        } catch (\Exception $e) {
+            Log::error("Errore in inviaReportPerAutomazione", [
+                'automazione_id' => $automazione->id,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    private function inviaEmailRaggruppata(AutomazioneReport $automazione, $reports, Carbon $data): bool
+    {
+        try {
+            // Genera contenuto email per ogni lingua
+            $contenuti_email = [];
+            foreach ($automazione->lingue as $lingua) {
+                $contenuti_email[$lingua] = $this->generaContenutoEmailCompleto($reports, $lingua, $data, $automazione->includi_dettagli_ore);
+            }
+
+            // Una singola email con tutti i report
+            $this->inviaEmail($automazione, $contenuti_email, $data, 'TUTTI I TECNICI');
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error("Errore inviaEmailRaggruppata", ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    private function inviaEmailSeparate(AutomazioneReport $automazione, $reports, Carbon $data): bool
+    {
+        try {
+            // Raggruppa per utente
+            $reportPerUtente = $reports->groupBy('user_id');
+            
+            foreach ($reportPerUtente as $userId => $reportsUtente) {
+                $nomeUtente = $reportsUtente->first()->user->name;
+                
+                // Genera contenuto per questo utente
+                $contenuti_email = [];
+                foreach ($automazione->lingue as $lingua) {
+                    $contenuti_email[$lingua] = $this->generaContenutoEmailCompleto($reportsUtente, $lingua, $data, $automazione->includi_dettagli_ore);
+                }
+
+                // Invia email separata per questo utente
+                $this->inviaEmail($automazione, $contenuti_email, $data, $nomeUtente);
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error("Errore inviaEmailSeparate", ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    private function generaContenutoEmailCompleto($reports, string $lingua, Carbon $data, bool $includi_dettagli_ore = true): string
+    {
+        $titoli = [
+            'it' => 'Report Giornaliero del',
+            'en' => 'Daily Report of',
+            'de' => 'Tagesbericht vom',
+            'ru' => 'Ежедневный отчет за'
+        ];
+
+        $contenuto = "<h2>📋 {$titoli[$lingua]} {$data->format('d/m/Y')}</h2>";
+        $contenuto .= "<hr>";
+
+        foreach ($reports as $report) {
+            $contenuto .= "<div style='margin-bottom: 25px; padding: 20px; border: 2px solid #e3f2fd; border-radius: 8px; background-color: #fafafa;'>";
+            
+            // Intestazione con icone
+            $contenuto .= "<h3 style='color: #1976d2; margin-bottom: 15px;'>👤 {$report->user->name}</h3>";
+            
+            $contenuto .= "<div style='display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;'>";
+            $contenuto .= "<div><strong>🏢 Cliente:</strong> {$report->cliente->nome}</div>";
+            $contenuto .= "<div><strong>📋 Commessa:</strong> {$report->commessa->nome}</div>";
+            $contenuto .= "<div><strong>⏰ Ore Lavoro:</strong> {$report->ore_lavorate}h</div>";
+            $contenuto .= "<div><strong>🚗 Ore Viaggio:</strong> {$report->ore_viaggio}h</div>";
+            $contenuto .= "<div><strong>📏 Chilometri:</strong> {$report->km_auto} km</div>";
+            $contenuto .= "<div><strong>📅 Data:</strong> {$report->data->format('d/m/Y')}</div>";
+            $contenuto .= "</div>";
+
+            // Flags con colori
+            $flags = [];
+            if ($report->notturno) $flags[] = '<span style="background: #ff9800; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">🌙 Notturno</span>';
+            if ($report->trasferta) $flags[] = '<span style="background: #2196f3; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">🧳 Trasferta</span>';
+            if ($report->festivo) $flags[] = '<span style="background: #4caf50; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">🎉 Festivo</span>';
+            
+            if (!empty($flags)) {
+                $contenuto .= "<div style='margin-bottom: 15px;'>" . implode(' ', $flags) . "</div>";
+            }
+
+            // Report professionale nella lingua richiesta
+            $campo_descrizione = "descrizione_{$lingua}";
+            if (!empty($report->$campo_descrizione)) {
+                $contenuto .= "<div style='background-color: #e8f5e8; padding: 15px; margin-top: 15px; border-radius: 5px; border-left: 4px solid #4caf50;'>";
+                $contenuto .= "<strong>📝 Report Professionale ({$lingua}):</strong><br>";
+                $contenuto .= nl2br(htmlspecialchars($report->$campo_descrizione));
+                $contenuto .= "</div>";
+            } elseif (!empty($report->descrizione_lavori)) {
+                $contenuto .= "<div style='background-color: #fff3cd; padding: 15px; margin-top: 15px; border-radius: 5px; border-left: 4px solid #ffc107;'>";
+                $contenuto .= "<strong>📝 Descrizione Originale:</strong><br>";
+                $contenuto .= nl2br(htmlspecialchars($report->descrizione_lavori));
+                $contenuto .= "</div>";
+            }
+
+            $contenuto .= "</div>";
+        }
+
+        // Riepilogo migliorato
+        $totale_ore_lavoro = $reports->sum('ore_lavorate');
+        $totale_ore_viaggio = $reports->sum('ore_viaggio');
+        $totale_ore = $totale_ore_lavoro + $totale_ore_viaggio;
+        $totale_km = $reports->sum('km_auto');
+        $totale_tecnici = $reports->groupBy('user_id')->count();
+        
+        $contenuto .= "<hr style='margin: 30px 0;'>";
+        $contenuto .= "<div style='background-color: #e3f2fd; padding: 20px; border-radius: 8px;'>";
+        $contenuto .= "<h3 style='color: #1976d2; margin-bottom: 15px;'>📊 Riepilogo Giornaliero</h3>";
+        $contenuto .= "<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;'>";
+        $contenuto .= "<div><strong>👥 Tecnici coinvolti:</strong> {$totale_tecnici}</div>";
+        $contenuto .= "<div><strong>⏱️ Totale ore lavoro:</strong> {$totale_ore_lavoro}h</div>";
+        $contenuto .= "<div><strong>🚗 Totale ore viaggio:</strong> {$totale_ore_viaggio}h</div>";
+        $contenuto .= "<div><strong>⏰ Totale complessivo:</strong> {$totale_ore}h</div>";
+        $contenuto .= "<div><strong>🛣️ Totale chilometri:</strong> {$totale_km} km</div>";
+        $contenuto .= "<div><strong>📋 Numero report:</strong> {$reports->count()}</div>";
+        $contenuto .= "</div>";
+        $contenuto .= "</div>";
+
+        return $contenuto;
+    }
+
+    private function inviaEmail(AutomazioneReport $automazione, array $contenuti, Carbon $data, string $identificativo): void
+    {
+        $oggetto = "📋 Report VLD Service - {$data->format('d/m/Y')}";
+        if ($identificativo !== 'TUTTI I TECNICI') {
+            $oggetto .= " - {$identificativo}";
+        }
+
+        // Se multiple lingue, combina i contenuti
+        if (count($contenuti) > 1) {
+            $contenuto_finale = "";
+            $lingue_nomi = ['it' => '🇮🇹 Italiano', 'en' => '🇺🇸 English', 'de' => '🇩🇪 Deutsch', 'ru' => '🇷🇺 Русский'];
+            
+            foreach ($contenuti as $lingua => $contenuto) {
+                $contenuto_finale .= "<div style='margin-bottom: 50px; border-bottom: 3px solid #ddd; padding-bottom: 30px;'>";
+                $contenuto_finale .= "<h1 style='color: #0066cc; border-bottom: 2px solid #0066cc; padding-bottom: 10px;'>{$lingue_nomi[$lingua]}</h1>";
+                $contenuto_finale .= $contenuto;
+                $contenuto_finale .= "</div>";
+            }
+        } else {
+            $contenuto_finale = array_values($contenuti)[0];
+        }
+
+        // Invia a tutti i destinatari
+        foreach ($automazione->email_destinatari as $email) {
+            try {
+                Mail::html($contenuto_finale, function ($message) use ($email, $oggetto) {
+                    $message->to($email)
+                            ->subject($oggetto)
+                            ->from(config('mail.from.address'), config('mail.from.name'));
+                });
+
+                $this->line("📧 Email inviata a: {$email}");
+            } catch (\Exception $e) {
+                $this->error("❌ Errore invio email a {$email}: " . $e->getMessage());
+            }
+        }
+    }
+}

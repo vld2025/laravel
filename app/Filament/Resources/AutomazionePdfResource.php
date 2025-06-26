@@ -22,7 +22,7 @@ class AutomazionePdfResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Automazione PDF';
 
-    protected static ?string $navigationGroup = 'Amministrazione';
+    protected static ?string $navigationGroup = 'Automazioni';
 
     protected static ?int $navigationSort = 4;
 
