@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/admin');
 });
 
 // Route PDF - protette da autenticazione
@@ -60,3 +60,20 @@ Route::get('/pdf-template/{template}/preview', function (\App\Models\PdfTemplate
     
     return $pdf->stream('anteprima_template.pdf');
 })->name('pdf-template.preview')->middleware(['auth']);
+
+// Route per upload avatar mobile
+Route::post('/user/upload-avatar', function() {
+    $request = request();
+    $user = auth()->user();
+    
+    if ($request->hasFile('avatar')) {
+        $file = $request->file('avatar');
+        $filename = 'avatars/' . uniqid() . '.' . $file->getClientOriginalExtension();
+        $file->storeAs('public', $filename);
+        
+        $user->avatar = $filename;
+        $user->save();
+    }
+    
+    return redirect()->back()->with('success', 'Avatar aggiornato!');
+})->name('filament.user.upload-avatar')->middleware('auth');

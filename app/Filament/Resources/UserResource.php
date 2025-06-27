@@ -15,15 +15,15 @@ use Illuminate\Support\Facades\Hash;
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
-    
+
     protected static ?string $navigationIcon = 'heroicon-o-users';
-    
+
     protected static ?string $modelLabel = 'Utente';
-    
+
     protected static ?string $pluralModelLabel = 'Utenti';
-    
+
     protected static ?string $navigationGroup = 'Amministrazione';
-    
+
     protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
@@ -32,25 +32,32 @@ class UserResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Informazioni Base')
                     ->schema([
+                        Forms\Components\FileUpload::make('avatar')
+                            ->image()
+                            ->directory('avatars')
+                            ->disk('public')
+                            ->label('Foto Profilo')
+                            ->columnSpanFull(),
+
                         Forms\Components\TextInput::make('name')
                             ->required()
                             ->maxLength(255)
                             ->label('Nome'),
-                        
+
                         Forms\Components\TextInput::make('email')
                             ->email()
                             ->required()
                             ->maxLength(255)
                             ->unique(ignorable: fn ($record) => $record)
                             ->label('Email'),
-                        
+
                         Forms\Components\TextInput::make('password')
                             ->password()
                             ->dehydrateStateUsing(fn ($state) => Hash::make($state))
                             ->dehydrated(fn ($state) => filled($state))
                             ->required(fn (string $context): bool => $context === 'create')
                             ->label('Password'),
-                        
+
                         Forms\Components\Select::make('role')
                             ->options([
                                 'admin' => 'Amministratore',
@@ -61,32 +68,32 @@ class UserResource extends Resource
                             ->default('user')
                             ->label('Ruolo'),
                     ])->columns(2),
-                
+
                 Forms\Components\Section::make('Contatti')
                     ->schema([
                         Forms\Components\TextInput::make('telefono')
                             ->tel()
                             ->label('Telefono'),
-                        
+
                         Forms\Components\Textarea::make('indirizzo')
                             ->rows(3)
                             ->label('Indirizzo'),
                     ])->columns(2),
-                
+
                 Forms\Components\Section::make('Abbigliamento')
                     ->schema([
                         Forms\Components\TextInput::make('taglia_giacca')
                             ->label('Taglia Giacca'),
-                        
+
                         Forms\Components\TextInput::make('taglia_pantaloni')
                             ->label('Taglia Pantaloni'),
-                        
+
                         Forms\Components\TextInput::make('taglia_maglietta')
                             ->label('Taglia Maglietta'),
-                        
+
                         Forms\Components\TextInput::make('taglia_scarpe')
                             ->label('Taglia Scarpe'),
-                        
+
                         Forms\Components\Textarea::make('note_abbigliamento')
                             ->rows(3)
                             ->label('Note Abbigliamento'),
@@ -98,16 +105,21 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('avatar')
+                    ->label('Avatar')
+                    ->circular()
+                    ->size(40),
+
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nome')
                     ->searchable()
                     ->sortable(),
-                
+
                 Tables\Columns\TextColumn::make('email')
                     ->label('Email')
                     ->searchable()
                     ->sortable(),
-                
+
                 Tables\Columns\BadgeColumn::make('role')
                     ->label('Ruolo')
                     ->colors([
@@ -121,11 +133,11 @@ class UserResource extends Resource
                         'user' => 'Utente',
                         default => $state,
                     }),
-                
+
                 Tables\Columns\TextColumn::make('telefono')
                     ->label('Telefono')
                     ->searchable(),
-                
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creato il')
                     ->dateTime('d/m/Y H:i')

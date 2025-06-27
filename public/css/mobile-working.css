@@ -1,0 +1,19 @@
+@media (max-width: 768px) {
+    /* Nascondi sidebar */
+    aside.fi-sidebar {
+        display: none !important;
+    }
+    
+    /* Espandi contenuto */
+    main.fi-main {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Nascondi hamburger */
+    .fi-topbar-open-sidebar-btn,
+    .fi-topbar-close-sidebar-btn {
+        display: none !important;
+    }
+}

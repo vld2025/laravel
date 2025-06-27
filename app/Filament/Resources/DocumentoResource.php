@@ -3,63 +3,39 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\DocumentoResource\Pages;
+use App\Filament\Resources\DocumentoResource\RelationManagers;
 use App\Models\Documento;
-use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class DocumentoResource extends Resource
 {
     protected static ?string $model = Documento::class;
-    
-    protected static ?string $navigationIcon = 'heroicon-o-document-text';
-    
-    protected static ?string $modelLabel = 'Documento';
-    
-    protected static ?string $pluralModelLabel = 'Documenti';
-    
-    protected static ?string $navigationGroup = 'Gestione Personale';
-    
-    protected static ?int $navigationSort = 2;
+
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Informazioni Documento')
-                    ->schema([
-                        Forms\Components\Select::make('tipo')
-                            ->options(Documento::getTipi())
-                            ->required()
-                            ->live()
-                            ->label('Tipo Documento'),
-                        
-                        Forms\Components\Select::make('user_id')
-                            ->label('Utente')
-                            ->options(User::pluck('name', 'id'))
-                            ->searchable()
-                            ->visible(fn (Forms\Get $get) => $get('tipo') !== 'aziendale')
-                            ->required(fn (Forms\Get $get) => $get('tipo') !== 'aziendale'),
-                        
-                        Forms\Components\Hidden::make('caricato_da')
-                            ->default(auth()->id()),
-                        
-                        Forms\Components\TextInput::make('nome')
-                            ->required()
-                            ->maxLength(255)
-                            ->label('Nome Documento'),
-                        
-                        Forms\Components\FileUpload::make('file')
-                            ->required()
-                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'application/pdf'])
-                            ->maxSize(50 * 1024) // 50MB
-                            ->directory('documenti')
-                            ->label('File'),
-                    ])->columns(2),
+                Forms\Components\Select::make('user_id')
+                    ->relationship('user', 'name'),
+                Forms\Components\TextInput::make('caricato_da')
+                    ->required()
+                    ->numeric(),
+                Forms\Components\TextInput::make('tipo')
+                    ->required(),
+                Forms\Components\TextInput::make('nome')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('file')
+                    ->required()
+                    ->maxLength(255),
             ]);
     }
 
@@ -67,66 +43,44 @@ class DocumentoResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('nome')
-                    ->label('Nome')
-                    ->searchable()
-                    ->sortable(),
-                
-                Tables\Columns\BadgeColumn::make('tipo')
-                    ->label('Tipo')
-                    ->colors([
-                        'success' => 'busta_paga',
-                        'primary' => 'personale',
-                        'warning' => 'aziendale',
-                    ])
-                    ->formatStateUsing(fn (string $state) => Documento::getTipi()[$state] ?? $state),
-                
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Utente')
-                    ->searchable(),
-                
-                Tables\Columns\TextColumn::make('caricatoDa.name')
-                    ->label('Caricato da')
-                    ->searchable(),
-                
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Caricato il')
-                    ->dateTime('d/m/Y H:i')
+                    ->numeric()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('caricato_da')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('tipo'),
+                Tables\Columns\TextColumn::make('nome')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('file')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('tipo')
-                    ->options(Documento::getTipi())
-                    ->label('Tipo'),
+                //
             ])
             ->actions([
-                Tables\Actions\EditAction::make()
-                    ->visible(fn (Documento $record) => $record->canUserAccess(auth()->user())),
-                Tables\Actions\DeleteAction::make()
-                    ->visible(fn (Documento $record) => auth()->user()?->canViewAllData()),
+                Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn () => auth()->user()?->canViewAllData()),
+                    Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ])
-            ->defaultSort('created_at', 'desc');
+            ]);
     }
 
-    public static function getEloquentQuery(): Builder
+    public static function getRelations(): array
     {
-        $query = parent::getEloquentQuery();
-        
-        // User vede solo i documenti che può accedere
-        if (!auth()->user()?->canViewAllData()) {
-            $query->where(function ($q) {
-                $q->where('user_id', auth()->id())
-                  ->orWhere('tipo', 'aziendale');
-            });
-        }
-        
-        return $query;
+        return [
+            //
+        ];
     }
 
     public static function getPages(): array
@@ -136,23 +90,5 @@ class DocumentoResource extends Resource
             'create' => Pages\CreateDocumento::route('/create'),
             'edit' => Pages\EditDocumento::route('/{record}/edit'),
         ];
-    }
-
-    public static function getNavigationBadge(): ?string
-    {
-        if (!auth()->user()?->canViewAllData()) {
-        $query = static::getModel()::query();
-            $query->where(function ($q) {
-                $q->where('user_id', auth()->id())
-                  ->orWhere('tipo', 'aziendale');
-            });
-        }
-        $count = $query->count();
-        return $count > 0 ? (string) $count : null;
-    }
-
-    public static function getNavigationBadgeColor(): string|array|null
-    {
-        return static::getNavigationBadge() ? "primary" : null;
     }
 }

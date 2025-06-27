@@ -23,4 +23,9 @@ class EditAutomazionePdf extends EditRecord
             AutomazionePdfResource\Widgets\OrologioWidget::class,
         ];
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

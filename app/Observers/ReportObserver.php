@@ -5,15 +5,18 @@ namespace App\Observers;
 use App\Models\Report;
 use App\Services\FestivoService;
 use App\Services\ReportGeneratorService;
+use App\Services\BackupService;
 use Illuminate\Support\Facades\Log;
 
 class ReportObserver
 {
     protected $reportGenerator;
+    protected $backupService;
 
-    public function __construct(ReportGeneratorService $reportGenerator)
+    public function __construct(ReportGeneratorService $reportGenerator, BackupService $backupService)
     {
         $this->reportGenerator = $reportGenerator;
+        $this->backupService = $backupService;
     }
 
     /**
@@ -30,10 +33,9 @@ class ReportObserver
      */
     public function created(Report $report): void
     {
-        // DISABILITATO: Generazione automatica AI rimossa
-        //         // Genera report multilingua dopo la creazione
-        // DISABILITATO: Generazione automatica AI rimossa
-        //         $this->generateMultilingualReport($report);
+        $this->generaReportAI($report);
+        $this->calcolaFestivo($report);
+        $this->backupReport($report);
     }
 
     /**
@@ -46,7 +48,7 @@ class ReportObserver
             $this->calcolaFestivo($report);
         }
 
-        // Se l'user ha modificato le ore e non è admin/manager, 
+        // Se l'user ha modificato le ore e non è admin/manager,
         // aggiorna anche i campi fatturazione
         if ($this->shouldUpdateFatturazione($report)) {
             $this->copiaDatiPerFatturazione($report);
@@ -55,15 +57,12 @@ class ReportObserver
 
     /**
      * Handle the Report "updated" event.
-            // DISABILITATO: Generazione automatica AI rimossa
-            //      */
+     */
     public function updated(Report $report): void
     {
-        // Se la descrizione lavori è cambiata, rigenera i report
-        if ($report->wasChanged('descrizione_lavori') && !empty($report->descrizione_lavori)) {
-            // DISABILITATO: Generazione automatica AI rimossa
-            //             $this->generateMultilingualReport($report);
-        }
+        $this->generaReportAI($report);
+        $this->calcolaFestivo($report);
+        $this->backupReport($report);
     }
 
     /**
@@ -98,7 +97,7 @@ class ReportObserver
     private function shouldUpdateFatturazione(Report $report): bool
     {
         $user = auth()->user();
-        
+
         // Se non c'è utente autenticato, non aggiornare
         if (!$user) {
             return false;
@@ -111,6 +110,14 @@ class ReportObserver
 
         // Se l'user normale ha modificato le sue ore, aggiorna anche fatturazione
         return $report->isDirty('ore_lavorate') || $report->isDirty('ore_viaggio');
+    }
+
+    /**
+     * Genera report AI automaticamente
+     */
+    private function generaReportAI(Report $report): void
+    {
+        $this->generateMultilingualReport($report);
     }
 
     /**
@@ -140,19 +147,19 @@ class ReportObserver
                 // Aggiorna i campi senza triggering dell'observer
                 Report::withoutEvents(function () use ($report, $result) {
                     $updateData = [];
-                    
+
                     if (!empty($result['reports']['it'])) {
                         $updateData['descrizione_it'] = $result['reports']['it'];
                     }
-                    
+
                     if (!empty($result['reports']['en'])) {
                         $updateData['descrizione_en'] = $result['reports']['en'];
                     }
-                    
+
                     if (!empty($result['reports']['de'])) {
                         $updateData['descrizione_de'] = $result['reports']['de'];
                     }
-                    
+
                     if (!empty($result['reports']['ru'])) {
                         $updateData['descrizione_ru'] = $result['reports']['ru'];
                     }
@@ -173,6 +180,22 @@ class ReportObserver
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+        }
+    }
+
+    /**
+     * Backup automatico dopo creazione/modifica report
+     */
+    private function backupReport(Report $report)
+    {
+        try {
+            // Backup Excel del report
+            $this->backupService->aggiornaExcelReport($report);
+            
+            Log::info("Report backup completed for Report ID: " . $report->id);
+            
+        } catch (\Exception $e) {
+            Log::error('Errore backup report: ' . $e->getMessage());
         }
     }
 }

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full bg-gray-50">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ config('app.name', 'Laravel') }} - Mobile</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="{{ asset('images/favicon/f2.png') }}">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    
+    <!-- Styles -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
+    @filamentStyles
+    
+    <!-- Custom Styles -->
+    <style>
+        .avatar-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e5e7eb;
+            min-width: 200px;
+            z-index: 1000;
+        }
+        .avatar-dropdown.show {
+            display: block;
+        }
+        .avatar-container {
+            position: relative;
+        }
+        
+        /* Layout fisso */
+        body {
+            padding-top: 64px; /* Altezza header */
+            padding-bottom: 80px; /* Altezza footer */
+        }
+        
+        .fixed-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+        }
+        
+        .fixed-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="h-full bg-gray-50 font-sans antialiased">
+    <!-- HEADER FISSO BIANCO - SOLO LOGO -->
+    <header class="fixed-header bg-white shadow-sm border-b border-gray-200">
+        <div class="flex items-center justify-between px-4 py-3 h-16">
+            <!-- SOLO Logo a sinistra -->
+            <div class="flex items-center">
+                <img src="{{ asset('images/logo/1.png') }}" alt="VLD Service GmbH" class="h-10 w-auto">
+            </div>
+            
+            <!-- Avatar (SOLO AVATAR, NO UPLOAD) -->
+            <div class="avatar-container">
+                <button onclick="toggleAvatarDropdown()" class="hover:bg-gray-50 rounded-full p-1 transition-colors">
+                    @if(auth()->user()->avatar_url)
+                        <img src="{{ auth()->user()->avatar_url }}" alt="Avatar {{ auth()->user()->name }}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-300">
+                    @else
+                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                        </div>
+                    @endif
+                </button>
+                
+                <!-- Dropdown Menu - SOLO INFO E LOGOUT -->
+                <div id="avatarDropdown" class="avatar-dropdown">
+                    <div class="p-4 border-b border-gray-100">
+                        <p class="font-semibold text-gray-800">{{ auth()->user()->name }}</p>
+                        <p class="text-sm text-gray-500">{{ auth()->user()->email }}</p>
+                    </div>
+                    
+                    <div class="p-2">
+                        <!-- SOLO LOGOUT - Upload avatar rimosso temporaneamente -->
+                        <form method="POST" action="{{ route('filament.user.auth.logout') }}">
+                            @csrf
+                            <button type="submit" class="w-full flex items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors">
+                                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                </svg>
+                                Logout
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="min-h-screen bg-gray-50">
+        {{ $slot }}
+    </main>
+
+    <!-- FOOTER FISSO -->
+    <footer class="fixed-footer bg-white shadow-lg border-t border-gray-200">
+        <div class="flex justify-around py-3 h-20">
+            <a href="#" class="flex flex-col items-center justify-center text-blue-600 transition-colors">
+                <svg class="w-6 h-6 mb-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                </svg>
+                <span class="text-xs font-medium">Home</span>
+            </a>
+            <a href="#" class="flex flex-col items-center justify-center text-gray-400 hover:text-green-600 transition-colors">
+                <svg class="w-6 h-6 mb-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-xs font-medium">Report</span>
+            </a>
+            <a href="#" class="flex flex-col items-center justify-center text-gray-400 hover:text-orange-600 transition-colors">
+                <svg class="w-6 h-6 mb-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path>
+                    <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-xs font-medium">Spese</span>
+            </a>
+            <a href="#" class="flex flex-col items-center justify-center text-gray-400 hover:text-purple-600 transition-colors">
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span class="text-xs font-medium">Docs</span>
+            </a>
+        </div>
+    </footer>
+
+    <!-- JavaScript per Avatar Dropdown -->
+    <script>
+        function toggleAvatarDropdown() {
+            const dropdown = document.getElementById('avatarDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Chiudi dropdown cliccando fuori
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('avatarDropdown');
+            const container = document.querySelector('.avatar-container');
+            
+            if (!container.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+    </script>
+
+    @livewireScripts
+    @filamentScripts
+</body>
+</html>

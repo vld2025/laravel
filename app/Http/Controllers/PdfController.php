@@ -1,16 +1,23 @@
 <?php
-
 namespace App\Http\Controllers;
-
 use App\Models\Spesa;
 use App\Models\User;
+use App\Services\BackupService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class PdfController extends Controller
 {
+    private $backupService;
+    
+    public function __construct()
+    {
+        $this->backupService = new BackupService();
+    }
+    
     /**
      * Genera PDF spese mensili per un utente
      */
@@ -33,7 +40,7 @@ class PdfController extends Controller
             ->where('mese', $mese)
             ->orderBy('created_at')
             ->get();
-        
+            
         // Nomi dei mesi
         $mesiNomi = [
             1 => 'Gennaio', 2 => 'Febbraio', 3 => 'Marzo', 4 => 'Aprile',
@@ -57,6 +64,13 @@ class PdfController extends Controller
             $mese,
             $anno
         );
+        
+        // Backup su NAS
+        try {
+            $this->backupService->backupPDF($pdf->output(), 'Spese', $fileName);
+        } catch (\Exception $e) {
+            Log::error('Errore backup PDF spese: ' . $e->getMessage());
+        }
         
         // Se richiesto il download diretto
         if ($request->get('download', true)) {
@@ -87,7 +101,6 @@ class PdfController extends Controller
         
         $anno = $request->get('anno', date('Y'));
         $mese = $request->get('mese', date('n'));
-        
         $users = User::where('role', 'user')->get();
         $generatedFiles = [];
         
@@ -96,57 +109,57 @@ class PdfController extends Controller
                 ->where('anno', $anno)
                 ->where('mese', $mese)
                 ->get();
-            
+                
             if ($spese->count() > 0) {
-                // Genera PDF per questo utente
-                $result = $this->generateUserSpesePdf($user, $spese, $anno, $mese);
-                $generatedFiles[] = $result;
+                // Nomi dei mesi
+                $mesiNomi = [
+                    1 => 'Gennaio', 2 => 'Febbraio', 3 => 'Marzo', 4 => 'Aprile',
+                    5 => 'Maggio', 6 => 'Giugno', 7 => 'Luglio', 8 => 'Agosto',
+                    9 => 'Settembre', 10 => 'Ottobre', 11 => 'Novembre', 12 => 'Dicembre'
+                ];
+                
+                $meseNome = $mesiNomi[$mese];
+                
+                // Genera PDF
+                $pdf = Pdf::loadView('pdf.spese-mensili', compact(
+                    'user', 'spese', 'anno', 'mese', 'meseNome'
+                ));
+                
+                $pdf->setPaper('A4', 'portrait');
+                
+                // Nome file
+                $fileName = sprintf(
+                    'spese_%s_%s_%s.pdf',
+                    str_replace(' ', '_', strtolower($user->name)),
+                    $mese,
+                    $anno
+                );
+                
+                $filePath = "pdf/spese/{$fileName}";
+                Storage::disk('public')->put($filePath, $pdf->output());
+                
+                // Backup su NAS
+                try {
+                    $this->backupService->backupPDF($pdf->output(), 'Spese', $fileName);
+                } catch (\Exception $e) {
+                    Log::error('Errore backup PDF spese: ' . $e->getMessage());
+                }
+                
+                $generatedFiles[] = [
+                    'user_name' => $user->name,
+                    'file_path' => $filePath,
+                    'download_url' => Storage::disk('public')->url($filePath),
+                    'file_name' => $fileName,
+                    'spese_count' => $spese->count()
+                ];
             }
         }
         
         return response()->json([
             'success' => true,
-            'generated_files' => $generatedFiles,
-            'total_files' => count($generatedFiles)
+            'files' => $generatedFiles,
+            'message' => count($generatedFiles) . ' file PDF generati'
         ]);
-    }
-    
-    /**
-     * Metodo helper per generare PDF per un singolo utente
-     */
-    private function generateUserSpesePdf(User $user, $spese, $anno, $mese)
-    {
-        $mesiNomi = [
-            1 => 'Gennaio', 2 => 'Febbraio', 3 => 'Marzo', 4 => 'Aprile',
-            5 => 'Maggio', 6 => 'Giugno', 7 => 'Luglio', 8 => 'Agosto',
-            9 => 'Settembre', 10 => 'Ottobre', 11 => 'Novembre', 12 => 'Dicembre'
-        ];
-        
-        $meseNome = $mesiNomi[$mese];
-        
-        $pdf = Pdf::loadView('pdf.spese-mensili', compact(
-            'user', 'spese', 'anno', 'mese', 'meseNome'
-        ));
-        
-        $pdf->setPaper('A4', 'portrait');
-        
-        $fileName = sprintf(
-            'spese_%s_%s_%s.pdf',
-            str_replace(' ', '_', strtolower($user->name)),
-            $mese,
-            $anno
-        );
-        
-        $filePath = "pdf/spese/{$fileName}";
-        Storage::disk('public')->put($filePath, $pdf->output());
-        
-        return [
-            'user_name' => $user->name,
-            'file_path' => $filePath,
-            'download_url' => Storage::disk('public')->url($filePath),
-            'file_name' => $fileName,
-            'spese_count' => $spese->count()
-        ];
     }
     
     /**
@@ -160,7 +173,7 @@ class PdfController extends Controller
         
         return Storage::disk('public')->download($filePath);
     }
-
+    
     /**
      * Genera PDF fattura con opzione Swiss QR Bill
      */
@@ -172,27 +185,27 @@ class PdfController extends Controller
         if (!$impostazioni) {
             abort(404, 'Impostazioni fatturazione non trovate per questo committente');
         }
-
+        
         // Verifica permessi
         if (!auth()->user()->canViewAllData()) {
             abort(403, 'Non autorizzato a generare fatture');
         }
-
+        
         $useQrBill = ($request->get("qr_bill", false) || $request->route()->getName() === "pdf.fattura-qr") && $impostazioni->swiss_qr_bill;
         $qrCode = null;
-
+        
         // Genera Swiss QR Bill se richiesto
         if ($useQrBill) {
             $qrCode = $this->generateSwissQrBill($fattura, $impostazioni);
         }
-
+        
         // Array mesi in italiano
         $mesi = [
             1 => 'Gennaio', 2 => 'Febbraio', 3 => 'Marzo', 4 => 'Aprile',
             5 => 'Maggio', 6 => 'Giugno', 7 => 'Luglio', 8 => 'Agosto',
             9 => 'Settembre', 10 => 'Ottobre', 11 => 'Novembre', 12 => 'Dicembre'
         ];
-
+        
         // Genera PDF
         $pdf = Pdf::loadView('pdf.fattura', [
             'fattura' => $fattura,
@@ -200,14 +213,20 @@ class PdfController extends Controller
             'qrCode' => $qrCode,
             'mesi' => $mesi
         ]);
-
-        $pdf->setPaper('A4');
         
+        $pdf->setPaper('A4');
         $filename = "fattura_{$fattura->numero}" . ($useQrBill ? '_qr' : '') . ".pdf";
+        
+        // Backup su NAS
+        try {
+            $this->backupService->backupPDF($pdf->output(), 'Fatture', $filename);
+        } catch (\Exception $e) {
+            Log::error('Errore backup PDF fattura: ' . $e->getMessage());
+        }
         
         return $pdf->download($filename);
     }
-
+    
     /**
      * Genera Swiss QR Bill per la fattura
      */
@@ -234,7 +253,7 @@ class PdfController extends Controller
             'additional_info' => $impostazioni->qr_additional_info ?? "Fattura {$fattura->numero}",
             'billing_info' => $impostazioni->qr_billing_info ?? ''
         ];
-
+        
         return $qrBillService->generateQrBill($qrData);
     }
 }

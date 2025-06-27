@@ -1,0 +1,60 @@
+<?php
+namespace App\Providers\Filament;
+use Filament\Http\Middleware\Authenticate;
+use Filament\Http\Middleware\AuthenticateSession;
+use Filament\Http\Middleware\DisableBladeIconComponents;
+use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Panel;
+use Filament\PanelProvider;
+use Filament\Support\Colors\Color;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
+
+class UserPanelProvider extends PanelProvider
+{
+    public function panel(Panel $panel): Panel
+    {
+        return $panel
+            ->id('user')
+            ->path('user')
+            ->login()
+            ->brandName('VLD Service GmbH - Mobile')
+            ->brandLogo(asset('images/logo/1.png'))
+            ->favicon(asset('images/favicon/f2.png'))
+            ->colors([
+                'primary' => Color::Green,
+                'gray' => Color::Slate,
+            ])
+            // ELIMINA COMPLETAMENTE LA SIDEBAR
+            ->navigation(false)
+            // TOP NAVIGATION MOBILE
+            ->topNavigation()
+            ->maxContentWidth('full')
+            // LAYOUT MOBILE PERSONALIZZATO
+            ->renderHook('panels::body.start', fn () => view('filament.user.layout.mobile-header'))
+            ->renderHook('panels::body.end', fn () => view('filament.user.layout.mobile-footer'))
+            ->discoverResources(in: app_path('Filament/User/Resources'), for: 'App\\Filament\\User\\Resources')
+            ->discoverPages(in: app_path('Filament/User/Pages'), for: 'App\\Filament\\User\\Pages')
+            ->pages([
+                \App\Filament\User\Pages\Dashboard::class,
+            ])
+            ->middleware([
+                EncryptCookies::class,
+                AddQueuedCookiesToResponse::class,
+                StartSession::class,
+                AuthenticateSession::class,
+                ShareErrorsFromSession::class,
+                VerifyCsrfToken::class,
+                SubstituteBindings::class,
+                DisableBladeIconComponents::class,
+                DispatchServingFilamentEvent::class,
+            ])
+            ->authMiddleware([
+                Authenticate::class,
+            ]);
+    }
+}

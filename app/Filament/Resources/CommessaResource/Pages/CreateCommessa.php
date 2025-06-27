@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateCommessa extends CreateRecord
 {
     protected static string $resource = CommessaResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

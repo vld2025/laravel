@@ -22,8 +22,6 @@ class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, 
     protected $committente_id;
     protected $anno;
     protected $mese;
-    protected $periodo_inizio;
-    protected $periodo_fine;
     protected $data_collection;
 
     public function __construct($committente_id, $anno, $mese)
@@ -31,8 +29,6 @@ class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, 
         $this->committente_id = $committente_id;
         $this->anno = $anno;
         $this->mese = $mese;
-        
-        $this->calcolaPeriodoFatturazione();
     }
 
     public function startCell(): string
@@ -40,23 +36,14 @@ class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, 
         return 'A1';
     }
 
-    private function calcolaPeriodoFatturazione()
-    {
-        $impostazioni = ImpostazioneFattura::where('committente_id', $this->committente_id)->first();
-        $giorno_fatturazione = $impostazioni ? $impostazioni->giorno_fatturazione : 20;
-
-        $mese_precedente = $this->mese == 1 ? 12 : $this->mese - 1;
-        $anno_precedente = $this->mese == 1 ? $this->anno - 1 : $this->anno;
-
-        $this->periodo_inizio = Carbon::create($anno_precedente, $mese_precedente, $giorno_fatturazione)->addDay();
-        $this->periodo_fine = Carbon::create($this->anno, $this->mese, $giorno_fatturazione);
-    }
-
     public function collection()
     {
         $this->data_collection = Report::with(['user', 'committente', 'cliente', 'commessa'])
-            ->where('committente_id', $this->committente_id)
-            ->whereBetween('data', [$this->periodo_inizio, $this->periodo_fine])
+            ->whereHas('commessa.cliente', function($q) { 
+                $q->where('committente_id', $this->committente_id); 
+            })
+            ->whereYear('data', $this->anno)
+            ->whereMonth('data', $this->mese)
             ->orderBy('data')
             ->orderBy('user_id')
             ->get();
@@ -75,9 +62,8 @@ class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, 
             'Ore Viaggio',
             'Totale Ore',
             'Km Auto',
-            'Notturno',
             'Trasferta',
-            'Festivo',
+            'Notturno',
             'Festivo'
         ];
     }
@@ -87,7 +73,7 @@ class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, 
         // Giorni della settimana in italiano
         $giorni = [
             'Monday' => 'Lunedì',
-            'Tuesday' => 'Martedì', 
+            'Tuesday' => 'Martedì',
             'Wednesday' => 'Mercoledì',
             'Thursday' => 'Giovedì',
             'Friday' => 'Venerdì',
@@ -107,9 +93,8 @@ class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, 
             $report->ore_viaggio,
             $report->ore_lavorate + $report->ore_viaggio,
             $report->km_auto,
-            $report->notturno ? 'Sì' : 'No',
             $report->trasferta ? 'Sì' : 'No',
-            $report->festivo ? 'Sì' : 'No',
+            $report->notturno ? 'Sì' : 'No',
             $report->festivo ? 'Sì' : 'No'
         ];
     }
@@ -119,10 +104,10 @@ class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, 
         return [
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                
+
                 // FREEZE DELLA PRIMA RIGA (intestazioni fisse)
                 $sheet->freezePane('A2');
-                
+
                 // Calcola ultima riga e riga totali
                 $lastRow = $this->data_collection ? $this->data_collection->count() + 1 : 2;
                 $totalRow = $lastRow + 1;
@@ -140,8 +125,8 @@ class ReportMensileExport implements FromCollection, WithHeadings, WithMapping, 
                 $sheet->setCellValue('F' . $totalRow, $totale_ore_viaggio);
                 $sheet->setCellValue('G' . $totalRow, $totale_ore);
                 $sheet->setCellValue('H' . $totalRow, $totale_km);
-                $sheet->setCellValue('I' . $totalRow, ''); // Colonna Notturno vuota
-                $sheet->setCellValue('J' . $totalRow, $totale_trasferte); // Conteggio trasferte
+                $sheet->setCellValue('I' . $totalRow, $totale_trasferte); // Conteggio trasferte (spostato in colonna I)
+                $sheet->setCellValue('J' . $totalRow, ''); // Colonna Notturno vuota
                 $sheet->setCellValue('K' . $totalRow, ''); // Colonna Festivo vuota
             },
         ];

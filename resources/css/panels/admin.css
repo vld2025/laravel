@@ -1,0 +1,31 @@
+/* VLD SERVICE - ADMIN PANEL (DESKTOP ONLY) */
+
+/* Sidebar azzurra trasparente - SOLO DESKTOP */
+.fi-sidebar {
+    background: rgba(59, 130, 246, 0.15) !important;
+    backdrop-filter: blur(12px) !important;
+    border-right: 1px solid rgba(59, 130, 246, 0.3) !important;
+}
+
+.fi-sidebar-nav-item {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+    margin: 4px 8px !important;
+}
+
+.fi-sidebar-nav-item:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Header desktop */
+.fi-topbar {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border-bottom: 1px solid rgba(229, 231, 235, 0.5) !important;
+}
+
+/* Colori tema ADMIN - BLU */
+:root {
+    --admin-primary: #3b82f6;
+    --admin-secondary: #1e40af;
+}

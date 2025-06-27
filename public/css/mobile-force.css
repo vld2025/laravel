@@ -1,0 +1,20 @@
+/* Force Mobile CSS */
+@media screen and (max-width: 768px) {
+    body .fi-sidebar,
+    html .fi-sidebar {
+        display: none !important;
+        visibility: hidden !important;
+    }
+    
+    body .fi-main-ctn,
+    html .fi-main-ctn {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    body .fi-topbar-open-sidebar-btn,
+    body .fi-topbar-close-sidebar-btn {
+        display: none !important;
+    }
+}
