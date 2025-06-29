@@ -1,0 +1,113 @@
+<!-- FOOTER FISSO MOBILE -->
+<footer style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: linear-gradient(145deg, #ffffff, #f8fafc); border-top: 2px solid #e5e7eb; box-shadow: 0 -4px 20px rgba(0,0,0,0.1);">
+    <div style="display: flex; gap: 4px; padding: 8px; height: 80px;">
+        <!-- SPESE -->
+        <a href="{{ route('filament.user.resources.spesas.index') }}" 
+           onclick="vibrate()" 
+           style="flex: 1; display: flex; align-items: center; justify-content: center; 
+                  background: {{ request()->routeIs('filament.user.resources.spesas.*') ? 'linear-gradient(145deg, #f97316, #ea580c)' : 'linear-gradient(145deg, #f1f5f9, #e2e8f0)' }};
+                  color: {{ request()->routeIs('filament.user.resources.spesas.*') ? 'white' : '#64748b' }};
+                  text-decoration: none; transition: all 0.3s ease;
+                  border-radius: 16px; font-weight: 700; font-size: 14px;
+                  box-shadow: {{ request()->routeIs('filament.user.resources.spesas.*') ? 'inset 2px 2px 6px rgba(0,0,0,0.2), inset -2px -2px 6px rgba(255,255,255,0.1)' : '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.9)' }};
+                  border: {{ request()->routeIs('filament.user.resources.spesas.*') ? '2px solid #dc2626' : '2px solid transparent' }};">
+            SPESE
+        </a>
+
+        <!-- REPORT - PRINCIPALE! -->
+        <a href="{{ route('filament.user.resources.reports.index') }}" 
+           onclick="vibrate()" 
+           style="flex: 1.4; display: flex; align-items: center; justify-content: center; 
+                  background: {{ request()->routeIs('filament.user.resources.reports.*') ? 'linear-gradient(145deg, #0ea5e9, #0284c7)' : 'linear-gradient(145deg, #dbeafe, #bfdbfe)' }};
+                  color: {{ request()->routeIs('filament.user.resources.reports.*') ? 'white' : '#1e40af' }};
+                  text-decoration: none; transition: all 0.3s ease;
+                  border-radius: 20px; font-weight: 800; font-size: 16px;
+                  box-shadow: {{ request()->routeIs('filament.user.resources.reports.*') ? 'inset 3px 3px 8px rgba(0,0,0,0.3), inset -3px -3px 8px rgba(255,255,255,0.1)' : '6px 6px 12px rgba(0,0,0,0.15), -3px -3px 8px rgba(255,255,255,0.9)' }};
+                  border: {{ request()->routeIs('filament.user.resources.reports.*') ? '3px solid #1d4ed8' : '3px solid #3b82f6' }};
+                  transform: {{ request()->routeIs('filament.user.resources.reports.*') ? 'scale(0.96)' : 'scale(1)' }};">
+            REPORT
+        </a>
+
+        <!-- SPESE EXTRA -->
+        <a href="{{ route('filament.user.resources.spesa-extras.index') }}" 
+           onclick="vibrate()" 
+           style="flex: 1; display: flex; align-items: center; justify-content: center; 
+                  background: {{ request()->routeIs('filament.user.resources.spesa-extras.*') ? 'linear-gradient(145deg, #8b5cf6, #7c3aed)' : 'linear-gradient(145deg, #f1f5f9, #e2e8f0)' }};
+                  color: {{ request()->routeIs('filament.user.resources.spesa-extras.*') ? 'white' : '#64748b' }};
+                  text-decoration: none; transition: all 0.3s ease;
+                  border-radius: 16px; font-weight: 700; font-size: 12px;
+                  box-shadow: {{ request()->routeIs('filament.user.resources.spesa-extras.*') ? 'inset 2px 2px 6px rgba(0,0,0,0.2), inset -2px -2px 6px rgba(255,255,255,0.1)' : '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.9)' }};
+                  border: {{ request()->routeIs('filament.user.resources.spesa-extras.*') ? '2px solid #6d28d9' : '2px solid transparent' }};">
+            EXTRA
+        </a>
+
+        <!-- DOCS -->
+        <a href="{{ route('filament.user.resources.documentos.index') }}" 
+           onclick="vibrate()" 
+           style="flex: 1; display: flex; align-items: center; justify-content: center; 
+                  background: {{ request()->routeIs('filament.user.resources.documentos.*') ? 'linear-gradient(145deg, #22c55e, #16a34a)' : 'linear-gradient(145deg, #f1f5f9, #e2e8f0)' }};
+                  color: {{ request()->routeIs('filament.user.resources.documentos.*') ? 'white' : '#64748b' }};
+                  text-decoration: none; transition: all 0.3s ease;
+                  border-radius: 16px; font-weight: 700; font-size: 14px;
+                  box-shadow: {{ request()->routeIs('filament.user.resources.documentos.*') ? 'inset 2px 2px 6px rgba(0,0,0,0.2), inset -2px -2px 6px rgba(255,255,255,0.1)' : '4px 4px 8px rgba(0,0,0,0.1), -2px -2px 6px rgba(255,255,255,0.9)' }};
+                  border: {{ request()->routeIs('filament.user.resources.documentos.*') ? '2px solid #15803d' : '2px solid transparent' }};">
+            DOCS
+        </a>
+    </div>
+</footer>
+
+<!-- PADDING PER FOOTER FISSO -->
+<div style="height: 80px;"></div>
+
+<!-- FAB DINAMICO -->
+@if(request()->routeIs('filament.user.resources.documentos.index'))
+<div style="position: fixed; bottom: 100px; right: 20px; z-index: 1000;">
+    <a href="/user/documentos/create" onclick="vibrate()" style="display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: linear-gradient(145deg, #22c55e, #16a34a); color: white; border-radius: 50%; text-decoration: none; font-size: 24px; font-weight: bold; box-shadow: 4px 4px 12px rgba(0,0,0,0.2); border: 2px solid #15803d; transition: all 0.2s ease;">+</a>
+</div>
+@elseif(request()->routeIs('filament.user.resources.spesas.index'))
+<div style="position: fixed; bottom: 100px; right: 20px; z-index: 1000;">
+    <a href="/user/spesas/create" onclick="vibrate()" style="display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: linear-gradient(145deg, #f97316, #ea580c); color: white; border-radius: 50%; text-decoration: none; font-size: 24px; font-weight: bold; box-shadow: 4px 4px 12px rgba(0,0,0,0.2); border: 2px solid #dc2626; transition: all 0.2s ease;">+</a>
+</div>
+@elseif(request()->routeIs('filament.user.resources.spesa-extras.index'))
+<div style="position: fixed; bottom: 100px; right: 20px; z-index: 1000;">
+    <a href="/user/spesas/create" onclick="vibrate()" style="display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: linear-gradient(145deg, #8b5cf6, #7c3aed); color: white; border-radius: 50%; text-decoration: none; font-size: 24px; font-weight: bold; box-shadow: 4px 4px 12px rgba(0,0,0,0.2); border: 2px solid #6d28d9; transition: all 0.2s ease;">+</a>
+</div>
+@elseif(request()->routeIs('filament.user.resources.reports.index'))
+<div style="position: fixed; bottom: 100px; right: 20px; z-index: 1000;">
+    <a href="/user/reports/create" onclick="vibrate()" style="display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: linear-gradient(145deg, #0ea5e9, #0284c7); color: white; border-radius: 50%; text-decoration: none; font-size: 24px; font-weight: bold; box-shadow: 4px 4px 12px rgba(0,0,0,0.2); border: 2px solid #1d4ed8; transition: all 0.2s ease;">+</a>
+</div>
+@endif
+
+<!-- JAVASCRIPT PER VIBRAZIONE E EFFETTI -->
+<script>
+function vibrate() {
+    if (navigator.vibrate) {
+        navigator.vibrate(50);
+    }
+}
+
+// Effetti touch per pulsanti
+document.querySelectorAll('footer a').forEach(button => {
+    button.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        this.style.transform = 'scale(0.95)';
+        vibrate();
+    });
+    
+    button.addEventListener('touchend', function(e) {
+        this.style.transform = 'scale(1)';
+        // Naviga dopo l'animazione
+        setTimeout(() => {
+            window.location.href = this.href;
+        }, 100);
+    });
+    
+    button.addEventListener('mousedown', function() {
+        this.style.transform = 'scale(0.95)';
+    });
+    
+    button.addEventListener('mouseup', function() {
+        this.style.transform = 'scale(1)';
+    });
+});
+</script>

@@ -77,3 +77,6 @@ Route::post('/user/upload-avatar', function() {
     
     return redirect()->back()->with('success', 'Avatar aggiornato!');
 })->name('filament.user.upload-avatar')->middleware('auth');
+
+// Language switching route
+Route::get('/language/{locale}', [App\Http\Controllers\LanguageController::class, 'switch'])->name('language.switch');

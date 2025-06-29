@@ -21,7 +21,7 @@ class ViewDocumento extends ViewRecord
                 ->url($this->getResource()::getUrl('index'))
                 ->button(),
             Actions\Action::make('download')
-                ->label('Scarica')
+                ->label(__('ui.download'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('success')
                 ->url(fn () => asset('storage/' . $this->record->file))
@@ -33,15 +33,15 @@ class ViewDocumento extends ViewRecord
     {
         return $infolist
             ->schema([
-                Infolists\Components\Section::make('Dettagli Documento')
+                Infolists\Components\Section::make(__('ui.document_details'))
                     ->schema([
                         Infolists\Components\Group::make([
                             Infolists\Components\TextEntry::make('nome')
-                                ->label('Nome documento')
+                                ->label(__('ui.document_name'))
                                 ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                                 ->weight('bold'),
                             Infolists\Components\TextEntry::make('tipo')
-                                ->label('Tipo')
+                                ->label(__('ui.type'))
                                 ->badge()
                                 ->color(fn (string $state): string => match ($state) {
                                     'busta_paga' => 'success',
@@ -53,15 +53,15 @@ class ViewDocumento extends ViewRecord
 
                         Infolists\Components\Group::make([
                             Infolists\Components\TextEntry::make('created_at')
-                                ->label('Caricato il')
+                                ->label(__('ui.uploaded_on'))
                                 ->dateTime('d/m/Y H:i'),
                             Infolists\Components\TextEntry::make('user.name')
-                                ->label('Caricato da')
+                                ->label(__('ui.uploaded_by'))
                                 ->visible(fn () => auth()->user()->isAdmin() || auth()->user()->isManager()),
                         ])->columns(2),
 
                         Infolists\Components\ImageEntry::make('file')
-                            ->label('Anteprima Documento')
+                            ->label(__('ui.document_preview'))
                             ->disk('public')
                             ->height(400)
                             ->width('100%')

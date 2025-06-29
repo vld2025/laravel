@@ -1,0 +1,185 @@
+@auth
+<!-- HEADER FISSO MOBILE - SOLO SE LOGGATO -->
+<style>
+.avatar-dropdown {
+   display: none;
+   position: absolute;
+   right: 0;
+   top: 100%;
+   background: white;
+   border-radius: 8px;
+   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+   border: 1px solid #e5e7eb;
+   min-width: 200px;
+   z-index: 1000;
+}
+.avatar-dropdown.show {
+   display: block;
+}
+.avatar-container {
+   position: relative;
+}
+#avatarFileInput {
+   display: none;
+}
+.language-selector {
+   border-top: 1px solid #f3f4f6;
+   padding: 8px;
+}
+.language-option {
+   width: 100%;
+   display: flex;
+   align-items: center;
+   padding: 8px 12px;
+   font-size: 14px;
+   color: #374151;
+   background: none;
+   border: none;
+   border-radius: 6px;
+   transition: background-color 0.2s;
+   cursor: pointer;
+   text-decoration: none;
+}
+.language-option:hover {
+   background-color: #f9fafb;
+   color: #374151;
+   text-decoration: none;
+}
+.language-option.active {
+   background-color: #eff6ff;
+   color: #2563eb;
+}
+.flag-icon {
+   width: 20px;
+   height: 14px;
+   margin-right: 12px;
+   border-radius: 2px;
+   background-size: cover;
+   background-position: center;
+}
+.flag-it { background-image: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2"><rect width="1" height="2" fill="%23009246"/><rect width="1" height="2" x="1" fill="%23fff"/><rect width="1" height="2" x="2" fill="%23ce2b37"/></svg>'); }
+.flag-en { background-image: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 30"><rect width="60" height="30" fill="%23012169"/><g fill="%23fff"><path d="m0 0 60 30m0-30L0 30"/><path d="m25 0v30m10 0V0"/></g><g fill="%23c8102e"><path d="m0 0 60 30m0-30L0 30" stroke-width="6"/><path d="m30 0v30M0 15h60" stroke-width="10"/></g></svg>'); }
+.flag-de { background-image: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 3"><rect width="5" height="1" fill="%23000"/><rect width="5" height="1" y="1" fill="%23dd0000"/><rect width="5" height="1" y="2" fill="%23ffce00"/></svg>'); }
+.flag-ru { background-image: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2"><rect width="3" height="1" fill="%23fff"/><rect width="3" height="1" y="1" fill="%230039a6"/><rect width="3" height="1" y="0.67" fill="%23d52b1e"/></svg>'); }
+</style>
+
+<header style="position: fixed; top: 0; left: 0; right: 0; z-index: 50; background: white; border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+   <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; height: 64px;">
+       <!-- LOGO A SINISTRA - CLICCABILE HOME -->
+       <div style="display: flex; align-items: center;">
+           <a href="{{ route('filament.user.pages.dashboard') }}" style="text-decoration: none;">
+               <img src="{{ asset('images/logo/1.png') }}" alt="VLD Service GmbH" style="height: 40px; width: auto; cursor: pointer;">
+           </a>
+       </div>
+
+       <!-- AVATAR A DESTRA -->
+       <div class="avatar-container">
+           <button onclick="toggleAvatarDropdown()" style="background: none; border: none; padding: 4px; border-radius: 50%; transition: background-color 0.2s;">
+               @if(auth()->user()->avatar_url)
+                   <img src="{{ auth()->user()->avatar_url }}" alt="Avatar {{ auth()->user()->name }}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #d1d5db;">
+               @else
+                   <div style="width: 40px; height: 40px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
+                       {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                   </div>
+               @endif
+           </button>
+
+           <!-- Dropdown Menu -->
+           <div id="avatarDropdown" class="avatar-dropdown">
+               <div style="padding: 16px; border-bottom: 1px solid #f3f4f6;">
+                   <p style="font-weight: 600; color: #1f2937; margin: 0;">{{ auth()->user()->name }}</p>
+                   <p style="font-size: 14px; color: #6b7280; margin: 4px 0 0 0;">{{ auth()->user()->email }}</p>
+               </div>
+
+               <div style="padding: 8px;">
+                   <!-- CARICA AVATAR -->
+                   <button onclick="triggerAvatarUpload()" style="width: 100%; display: flex; align-items: center; padding: 8px 12px; font-size: 14px; color: #374151; background: none; border: none; border-radius: 6px; transition: background-color 0.2s; cursor: pointer;" onmouseover="this.style.backgroundColor='#f9fafb'" onmouseout="this.style.backgroundColor='transparent'">
+                       <svg style="width: 16px; height: 16px; margin-right: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0118.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                       </svg>
+                       Carica Avatar
+                   </button>
+               </div>
+
+               <!-- LANGUAGE SELECTOR -->
+               <div class="language-selector">
+                   <p style="font-size: 12px; color: #6b7280; margin: 0 0 8px 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Lingua / Language</p>
+                   
+                   <a href="{{ route('language.switch', 'it') }}" class="language-option {{ session("locale", app()->getLocale()) === 'it' ? 'active' : '' }}">
+                       <span class="flag-icon flag-it"></span>
+                       Italiano
+                   </a>
+                   
+                   <a href="{{ route('language.switch', 'en') }}" class="language-option {{ session("locale", app()->getLocale()) === 'en' ? 'active' : '' }}">
+                       <span class="flag-icon flag-en"></span>
+                       English
+                   </a>
+                   
+                   <a href="{{ route('language.switch', 'de') }}" class="language-option {{ session("locale", app()->getLocale()) === 'de' ? 'active' : '' }}">
+                       <span class="flag-icon flag-de"></span>
+                       Deutsch
+                   </a>
+                   
+                   <a href="{{ route('language.switch', 'ru') }}" class="language-option {{ session("locale", app()->getLocale()) === 'ru' ? 'active' : '' }}">
+                       <span class="flag-icon flag-ru"></span>
+                       Русский
+                   </a>
+               </div>
+
+               <div style="padding: 8px; border-top: 1px solid #f3f4f6;">
+                   <!-- LOGOUT -->
+                   <form method="POST" action="{{ route('filament.user.auth.logout') }}" style="margin: 0;">
+                       @csrf
+                       <button type="submit" style="width: 100%; display: flex; align-items: center; padding: 8px 12px; font-size: 14px; color: #dc2626; background: none; border: none; border-radius: 6px; transition: background-color 0.2s; cursor: pointer;" onmouseover="this.style.backgroundColor='#fef2f2'" onmouseout="this.style.backgroundColor='transparent'">
+                           <svg style="width: 16px; height: 16px; margin-right: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1"></path>
+                           </svg>
+                           Logout
+                       </button>
+                   </form>
+               </div>
+           </div>
+       </div>
+   </div>
+</header>
+
+<!-- INPUT FILE NASCOSTO -->
+<form id="avatarForm" action="{{ route('filament.user.upload-avatar') }}" method="POST" enctype="multipart/form-data" style="display: none;">
+   @csrf
+   <input type="file" id="avatarFileInput" name="avatar" accept="image/*" capture="user">
+</form>
+
+<script>
+function toggleAvatarDropdown() {
+   const dropdown = document.getElementById('avatarDropdown');
+   dropdown.classList.toggle('show');
+}
+
+function triggerAvatarUpload() {
+   document.getElementById('avatarDropdown').classList.remove('show');
+   document.getElementById('avatarFileInput').click();
+}
+
+document.getElementById('avatarFileInput').addEventListener('change', function() {
+   if (this.files && this.files[0]) {
+       document.getElementById('avatarForm').submit();
+   }
+});
+
+document.addEventListener('click', function(event) {
+   const dropdown = document.getElementById('avatarDropdown');
+   const container = document.querySelector('.avatar-container');
+   if (!container.contains(event.target)) {
+       dropdown.classList.remove('show');
+   }
+});
+
+// Chiudi dropdown quando si clicca su un link di lingua
+document.querySelectorAll('.language-option').forEach(function(link) {
+   link.addEventListener('click', function() {
+       document.getElementById('avatarDropdown').classList.remove('show');
+   });
+});
+</script>
+@endauth

@@ -1,0 +1,56 @@
+<?php
+
+namespace App\Filament\User\Widgets;
+
+use App\Models\Report;
+use App\Models\Documento;
+use Carbon\Carbon;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
+
+class AttivitaMensiliWidget extends BaseWidget
+{
+    protected static ?int $sort = 2;
+
+    protected function getStats(): array
+    {
+        $user = auth()->user();
+        $meseCorrente = Carbon::now();
+        
+        // Report questo mese
+        $numeroReport = Report::where('user_id', $user->id)
+            ->whereMonth('data', $meseCorrente->month)
+            ->whereYear('data', $meseCorrente->year)
+            ->count();
+            
+        // Documenti caricati questo mese
+        $numeroDocumenti = Documento::where('user_id', $user->id)
+            ->whereMonth('created_at', $meseCorrente->month)
+            ->whereYear('created_at', $meseCorrente->year)
+            ->count();
+            
+        // Report con festivi questo mese
+        $reportFestivi = Report::where('user_id', $user->id)
+            ->where('festivo', true)
+            ->whereMonth('data', $meseCorrente->month)
+            ->whereYear('data', $meseCorrente->year)
+            ->count();
+        
+        return [
+            Stat::make('Report Lavoro', $numeroReport)
+                ->description('Rapportini del mese')
+                ->descriptionIcon('heroicon-m-chart-bar')
+                ->color('primary'),
+                
+            Stat::make('Documenti', $numeroDocumenti)
+                ->description('Scontrini fotografati')
+                ->descriptionIcon('heroicon-m-camera')
+                ->color('success'),
+                
+            Stat::make('Giorni Festivi', $reportFestivi)
+                ->description('Lavoro nei festivi')
+                ->descriptionIcon('heroicon-m-calendar')
+                ->color('warning'),
+        ];
+    }
+}

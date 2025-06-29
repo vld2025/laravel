@@ -30,7 +30,7 @@ class DocumentoResource extends Resource
             Forms\Components\TextInput::make('nome')
                 ->required()
                 ->maxLength(255)
-                ->label('Nome documento'),
+                ->label(__('ui.document_name')),
             Forms\Components\FileUpload::make('file')
                 ->required()
                 ->acceptedFileTypes(['application/pdf', 'image/*'])
@@ -39,7 +39,7 @@ class DocumentoResource extends Resource
                 ->downloadable()
                 ->openable()
                 ->maxSize(50 * 1024)
-                ->label('Seleziona file')
+                ->label(__('ui.select_file'))
                 ->columnSpanFull(),
         ]);
     }
@@ -54,8 +54,9 @@ class DocumentoResource extends Resource
                     Tables\Columns\TextColumn::make('user.name')
                         ->sortable()
                         ->searchable()
-                        ->label('Utente'),
+                        ->label(__('ui.user')),
                     Tables\Columns\TextColumn::make('tipo')
+                        ->label(__('ui.type'))
                         ->badge()
                         ->color(fn (string $state): string => match ($state) {
                             'busta_paga' => 'success',
@@ -64,49 +65,49 @@ class DocumentoResource extends Resource
                             default => 'gray'
                         })
                         ->formatStateUsing(fn (string $state): string => match ($state) {
-                            'busta_paga' => 'BP',
-                            'aziendale' => 'AZ',
-                            'personale' => 'PS',
+                            'busta_paga' => __('ui.busta_paga'),
+                            'aziendale' => __('ui.aziendale'),
+                            'personale' => __('ui.personale'),
                             default => $state
                         })
                         ->width('60px'),
                     Tables\Columns\TextColumn::make('nome')
                         ->searchable()
-                        ->label('Documento')
+                        ->label(__('ui.document'))
                         ->wrap()
                         ->limit(25)
                         ->tooltip(fn ($record) => $record->nome),
                     Tables\Columns\TextColumn::make('created_at')
                         ->dateTime('d/m/Y')
                         ->sortable()
-                        ->label('Data')
+                        ->label(__('ui.date'))
                         ->width('50px'),
                 ])
                 ->filters([
                     Tables\Filters\SelectFilter::make('tipo')
                         ->options([
-                            'busta_paga' => 'Busta Paga',
-                            'aziendale' => 'Aziendale',
-                            'personale' => 'Personale'
+                            'busta_paga' => __('ui.busta_paga'),
+                            'aziendale' => __('ui.aziendale'),
+                            'personale' => __('ui.personale')
                         ])
-                        ->label('Tipo'),
+                        ->label(__('ui.type')),
                     Tables\Filters\SelectFilter::make('user_id')
                         ->relationship('user', 'name')
                         ->searchable()
-                        ->label('Utente'),
+                        ->label(__('ui.user')),
                 ])
                 ->actions([
                     Tables\Actions\Action::make('open')
                         ->label('')
                         ->icon('heroicon-o-pencil-square')
-                        ->tooltip('Modifica documento')
+                        ->tooltip(__('ui.edit_document'))
                         ->color('primary')
                         ->url(fn (Documento $record): string => static::getUrl('edit', ['record' => $record]))
                         ->size('sm'),
                     Tables\Actions\Action::make('download')
                         ->label('')
                         ->icon('heroicon-o-arrow-down-tray')
-                        ->tooltip('Scarica documento')
+                        ->tooltip(__('ui.download_document'))
                         ->url(fn (Documento $record): string => asset('storage/' . $record->file))
                         ->openUrlInNewTab()
                         ->size('sm'),
@@ -126,6 +127,7 @@ class DocumentoResource extends Resource
             })
             ->columns([
                 Tables\Columns\TextColumn::make('tipo')
+                    ->label(__('ui.type'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'busta_paga' => 'success',
@@ -134,32 +136,32 @@ class DocumentoResource extends Resource
                         default => 'gray'
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'busta_paga' => 'BP',
-                        'aziendale' => 'AZ',
-                        'personale' => 'PS',
+                        'busta_paga' => __('ui.busta_paga'),
+                        'aziendale' => __('ui.aziendale'),
+                        'personale' => __('ui.personale'),
                         default => $state
                     })
                     ->width('60px'),
                 Tables\Columns\TextColumn::make('nome')
                     ->searchable()
-                    ->label('Documento')
+                    ->label(__('ui.document'))
                     ->wrap()
                     ->limit(25)
                     ->tooltip(fn ($record) => $record->nome),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime('d/m/Y')
                     ->sortable()
-                    ->label('Data')
+                    ->label(__('ui.date'))
                     ->width('50px'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('tipo')
                     ->options([
-                        'busta_paga' => 'Busta Paga',
-                        'aziendale' => 'Aziendale',
-                        'personale' => 'Personale'
+                        'busta_paga' => __('ui.busta_paga'),
+                        'aziendale' => __('ui.aziendale'),
+                        'personale' => __('ui.personale')
                     ])
-                    ->label('Tipo'),
+                    ->label(__('ui.type')),
             ])
             ->actions([
                 Tables\Actions\Action::make('open')
@@ -172,7 +174,7 @@ class DocumentoResource extends Resource
                 Tables\Actions\Action::make('download')
                     ->label('')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->tooltip('Scarica documento')
+                    ->tooltip(__('ui.download_document'))
                     ->url(fn (Documento $record): string => asset('storage/' . $record->file))
                     ->openUrlInNewTab()
                     ->size('sm'),

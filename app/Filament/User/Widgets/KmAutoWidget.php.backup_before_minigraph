@@ -1,0 +1,57 @@
+<?php
+
+namespace App\Filament\User\Widgets;
+
+use App\Models\Report;
+use Carbon\Carbon;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
+
+class KmAutoWidget extends BaseWidget
+{
+    protected function getStats(): array
+    {
+        $user = auth()->user();
+        $meseCorrente = Carbon::now();
+        
+        // Km auto privata questo mese
+        $kmAutoPrivata = Report::where('user_id', $user->id)
+            ->where('auto_privata', true)
+            ->whereMonth('data', $meseCorrente->month)
+            ->whereYear('data', $meseCorrente->year)
+            ->sum('km_auto');
+            
+        // Km totali (privata + aziendale)
+        $kmTotali = Report::where('user_id', $user->id)
+            ->whereMonth('data', $meseCorrente->month)
+            ->whereYear('data', $meseCorrente->year)
+            ->sum('km_auto');
+            
+        // Numero report con auto privata
+        $reportAutoPrivata = Report::where('user_id', $user->id)
+            ->where('auto_privata', true)
+            ->whereMonth('data', $meseCorrente->month)
+            ->whereYear('data', $meseCorrente->year)
+            ->count();
+            
+        // Rimborso stimato (0.70 CHF/km per auto privata)
+        $rimborsoStimato = $kmAutoPrivata * 0.70;
+        
+        return [
+            Stat::make('Km Auto Privata', number_format($kmAutoPrivata) . ' km')
+                ->description("Rimborso: CHF " . number_format($rimborsoStimato, 2))
+                ->descriptionIcon('heroicon-m-banknotes')
+                ->color('warning'),
+                
+            Stat::make('Km Totali', number_format($kmTotali) . ' km')
+                ->description('Privata + Aziendale')
+                ->descriptionIcon('heroicon-m-map-pin')
+                ->color('primary'),
+                
+            Stat::make('Giorni Auto Privata', $reportAutoPrivata)
+                ->description('Report con auto privata')
+                ->descriptionIcon('heroicon-m-calendar-days')
+                ->color('info'),
+        ];
+    }
+}

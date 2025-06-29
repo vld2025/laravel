@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Filament\User\Widgets;
+
+use App\Models\Spesa;
+use App\Models\SpesaExtra;
+use Carbon\Carbon;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
+
+class SpeseMensiliWidget extends BaseWidget
+{
+    protected static ?int $sort = 2;
+
+    protected function getStats(): array
+    {
+        $user = auth()->user();
+        $meseCorrente = Carbon::now();
+        
+        // Spese normali questo mese
+        $speseNormali = Spesa::where('user_id', $user->id)
+            ->whereMonth('data', $meseCorrente->month)
+            ->whereYear('data', $meseCorrente->year)
+            ->sum('importo');
+            
+        // Spese extra questo mese
+        $speseExtra = SpesaExtra::where('user_id', $user->id)
+            ->whereMonth('data', $meseCorrente->month)
+            ->whereYear('data', $meseCorrente->year)
+            ->sum('importo');
+            
+        // Totale spese
+        $totaleSpese = $speseNormali + $speseExtra;
+        
+        // Numero documenti caricati questo mese
+        $numeroDocumenti = \App\Models\Documento::where('user_id', $user->id)
+            ->whereMonth('created_at', $meseCorrente->month)
+            ->whereYear('created_at', $meseCorrente->year)
+            ->count();
+        
+        return [
+            Stat::make('Spese Normali', 'CHF ' . number_format($speseNormali, 2))
+                ->description('Spese standard del mese')
+                ->descriptionIcon('heroicon-m-credit-card')
+                ->color('warning'),
+                
+            Stat::make('Spese Extra', 'CHF ' . number_format($speseExtra, 2))
+                ->description('Spese aggiuntive')
+                ->descriptionIcon('heroicon-m-currency-dollar')
+                ->color('danger'),
+                
+            Stat::make('Documenti', $numeroDocumenti)
+                ->description('Caricati questo mese')
+                ->descriptionIcon('heroicon-m-document-text')
+                ->color('success'),
+        ];
+    }
+}

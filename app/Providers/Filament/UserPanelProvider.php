@@ -51,6 +51,7 @@ class UserPanelProvider extends PanelProvider
             })
             ->discoverResources(in: app_path('Filament/User/Resources'), for: 'App\\Filament\\User\\Resources')
             ->discoverPages(in: app_path('Filament/User/Pages'), for: 'App\\Filament\\User\\Pages')
+            ->discoverWidgets(in: app_path('Filament/User/Widgets'), for: 'App\\Filament\\User\\Widgets')
             ->pages([
                 \App\Filament\User\Pages\Dashboard::class,
             ])
@@ -64,6 +65,7 @@ class UserPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                \App\Http\Middleware\SetLocale::class,
             ])
             ->renderHook('panels::head.end', function () {
                 return view('filament.user.layout.pwa-head');

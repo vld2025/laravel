@@ -1,52 +1,121 @@
-<!-- FOOTER FISSO MOBILE -->
-<footer style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: white; border-top: 1px solid #e5e7eb; box-shadow: 0 -1px 3px rgba(0,0,0,0.1);">
-    <div style="display: flex; justify-content: space-around; padding: 12px 0; height: 80px;">
-        <!-- HOME -->
-        <a href="{{ route('filament.user.pages.dashboard') }}" style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: {{ request()->routeIs('filament.user.pages.dashboard') ? '#3b82f6' : '#9ca3af' }}; text-decoration: none; transition: color 0.2s;">
-            <svg style="width: 24px; height: 24px; margin-bottom: 4px;" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
-            </svg>
-            <span style="font-size: 12px; font-weight: 500;">Home</span>
+<!-- FOOTER FISSO MOBILE - TRASPARENTE -->
+<footer style="position: fixed; bottom: 16px; left: 8px; right: 8px; z-index: 50; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(229, 231, 235, 0.8); border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+    <div style="display: flex; gap: 8px; padding: 12px; height: 70px;">
+        <!-- {{ __("ui.footer_expenses") }} -->
+        <a href="{{ route('filament.user.resources.spesas.index') }}" 
+           onclick="vibrate()" 
+           style="flex: 1; display: flex; align-items: center; justify-content: center; 
+                  background: {{ request()->routeIs('filament.user.resources.spesas.*') ? 'rgba(249, 115, 22, 0.8)' : 'rgba(107, 114, 128, 0.5)' }}; 
+                  color: {{ request()->routeIs('filament.user.resources.spesas.*') ? 'white' : 'rgb(55, 65, 81)' }};
+                  border: 1px solid {{ request()->routeIs('filament.user.resources.spesas.*') ? 'rgba(249, 115, 22, 0.6)' : 'rgba(209, 213, 219, 0.5)' }};
+                  text-decoration: none; transition: all 0.3s ease; font-weight: 600; font-size: 14px; 
+                  border-radius: 12px; backdrop-filter: blur(5px);">
+            {{ __("ui.footer_expenses") }}
         </a>
 
-        <!-- SPESE -->
-        <a href="{{ route('filament.user.resources.spesas.index') }}" style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: {{ request()->routeIs('filament.user.resources.spesas.*') ? '#ea580c' : '#9ca3af' }}; text-decoration: none; transition: color 0.2s;">
-            <svg style="width: 24px; height: 24px; margin-bottom: 4px;" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path>
-                <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path>
-            </svg>
-            <span style="font-size: 12px; font-weight: 500;">Spese</span>
+        <!-- {{ __("ui.footer_reports") }} - PRINCIPALE! -->
+        <a href="{{ route('filament.user.resources.reports.index') }}" 
+           onclick="vibrate()" 
+           style="flex: 1.4; display: flex; align-items: center; justify-content: center; 
+                  background: {{ request()->routeIs('filament.user.resources.reports.*') ? 'rgba(59, 130, 246, 0.8)' : 'rgba(59, 130, 246, 0.6)' }}; 
+                  color: white;
+                  border: 1px solid {{ request()->routeIs('filament.user.resources.reports.*') ? 'rgba(37, 99, 235, 0.8)' : 'rgba(59, 130, 246, 0.6)' }};
+                  text-decoration: none; transition: all 0.3s ease; font-weight: 700; font-size: 16px; 
+                  border-radius: 14px; backdrop-filter: blur(5px); 
+                  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);">
+            {{ __("ui.footer_reports") }}
         </a>
 
-        <!-- SPESE EXTRA - PLACEHOLDER per ora -->
-        <a href="#" style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: #9ca3af; text-decoration: none; transition: color 0.2s;">
-            <svg style="width: 24px; height: 24px; margin-bottom: 4px;" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
-            </svg>
-            <span style="font-size: 10px; font-weight: 500;">Spese Extra</span>
+        <!-- {{ __("ui.footer_expenses") }} {{ __("ui.footer_extra") }} -->
+        <a href="{{ route('filament.user.resources.spesa-extras.index') }}" 
+           onclick="vibrate()" 
+           style="flex: 1; display: flex; align-items: center; justify-content: center; 
+                  background: {{ request()->routeIs('filament.user.resources.spesa-extras.*') ? 'rgba(147, 51, 234, 0.8)' : 'rgba(107, 114, 128, 0.5)' }}; 
+                  color: {{ request()->routeIs('filament.user.resources.spesa-extras.*') ? 'white' : 'rgb(55, 65, 81)' }};
+                  border: 1px solid {{ request()->routeIs('filament.user.resources.spesa-extras.*') ? 'rgba(147, 51, 234, 0.6)' : 'rgba(209, 213, 219, 0.5)' }};
+                  text-decoration: none; transition: all 0.3s ease; font-weight: 600; font-size: 12px; 
+                  border-radius: 12px; backdrop-filter: blur(5px);">
+            {{ __("ui.footer_extra") }}
         </a>
 
-        <!-- DOCS - COLLEGATO! -->
-        <a href="{{ route('filament.user.resources.documentos.index') }}" style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: {{ request()->routeIs('filament.user.resources.documentos.*') ? '#9333ea' : '#9ca3af' }}; text-decoration: none; transition: color 0.2s;">
-            <svg style="width: 24px; height: 24px; margin-bottom: 4px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-            <span style="font-size: 12px; font-weight: 500;">Docs</span>
+        <!-- {{ __("ui.footer_docs") }} -->
+        <a href="{{ route('filament.user.resources.documentos.index') }}" 
+           onclick="vibrate()" 
+           style="flex: 1; display: flex; align-items: center; justify-content: center; 
+                  background: {{ request()->routeIs('filament.user.resources.documentos.*') ? 'rgba(34, 197, 94, 0.8)' : 'rgba(107, 114, 128, 0.5)' }}; 
+                  color: {{ request()->routeIs('filament.user.resources.documentos.*') ? 'white' : 'rgb(55, 65, 81)' }};
+                  border: 1px solid {{ request()->routeIs('filament.user.resources.documentos.*') ? 'rgba(34, 197, 94, 0.6)' : 'rgba(209, 213, 219, 0.5)' }};
+                  text-decoration: none; transition: all 0.3s ease; font-weight: 600; font-size: 14px; 
+                  border-radius: 12px; backdrop-filter: blur(5px);">
+            {{ __("ui.footer_docs") }}
         </a>
     </div>
 </footer>
 
 <!-- PADDING PER FOOTER FISSO -->
-<div style="height: 80px;"></div>
+<div style="height: 100px;"></div>
 
-<!-- FAB DINAMICO -->
+<!-- FAB DINAMICO - TRASPARENTE -->
 @if(request()->routeIs('filament.user.resources.documentos.index'))
 <div style="position: fixed; bottom: 100px; right: 20px; z-index: 1000;">
-    <a href="/user/documentos/create" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; background: rgba(16, 185, 129, 0.8); color: white; border-radius: 50%; text-decoration: none; font-size: 20px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">+</a>
+    <a href="/user/documentos/create" onclick="vibrate()" 
+       style="display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; 
+              background: rgba(34, 197, 94, 0.8); border: 2px solid rgba(34, 197, 94, 0.6); color: white; 
+              border-radius: 50%; text-decoration: none; font-size: 24px; font-weight: bold; 
+              box-shadow: 0 8px 16px rgba(34, 197, 94, 0.4); backdrop-filter: blur(10px); transition: all 0.3s ease;">+</a>
 </div>
 @elseif(request()->routeIs('filament.user.resources.spesas.index'))
 <div style="position: fixed; bottom: 100px; right: 20px; z-index: 1000;">
-    <a href="/user/spesas/create" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; background: rgba(234, 88, 12, 0.8); color: white; border-radius: 50%; text-decoration: none; font-size: 20px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">+</a>
+    <a href="/user/spesas/create" onclick="vibrate()" 
+       style="display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; 
+              background: rgba(249, 115, 22, 0.8); border: 2px solid rgba(249, 115, 22, 0.6); color: white; 
+              border-radius: 50%; text-decoration: none; font-size: 24px; font-weight: bold; 
+              box-shadow: 0 8px 16px rgba(249, 115, 22, 0.4); backdrop-filter: blur(10px); transition: all 0.3s ease;">+</a>
+</div>
+@elseif(request()->routeIs('filament.user.resources.spesa-extras.index'))
+<div style="position: fixed; bottom: 100px; right: 20px; z-index: 1000;">
+    <a href="/user/spesa-extras/create" onclick="vibrate()" 
+       style="display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; 
+              background: rgba(147, 51, 234, 0.8); border: 2px solid rgba(147, 51, 234, 0.6); color: white; 
+              border-radius: 50%; text-decoration: none; font-size: 24px; font-weight: bold; 
+              box-shadow: 0 8px 16px rgba(147, 51, 234, 0.4); backdrop-filter: blur(10px); transition: all 0.3s ease;">+</a>
+</div>
+@elseif(request()->routeIs('filament.user.resources.reports.index'))
+<div style="position: fixed; bottom: 100px; right: 20px; z-index: 1000;">
+    <a href="/user/reports/create" onclick="vibrate()" 
+       style="display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; 
+              background: rgba(59, 130, 246, 0.8); border: 2px solid rgba(59, 130, 246, 0.6); color: white; 
+              border-radius: 50%; text-decoration: none; font-size: 24px; font-weight: bold; 
+              box-shadow: 0 8px 16px rgba(59, 130, 246, 0.4); backdrop-filter: blur(10px); transition: all 0.3s ease;">+</a>
 </div>
 @endif
+
+<!-- JAVASCRIPT -->
+<script>
+function vibrate() {
+    if (navigator.vibrate) {
+        navigator.vibrate(50);
+    }
+}
+
+document.querySelectorAll('footer a, [style*="position: fixed"] a').forEach(button => {
+    button.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-2px) scale(1.05)';
+        this.style.filter = 'brightness(1.1)';
+    });
+    
+    button.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0) scale(1)';
+        this.style.filter = 'brightness(1)';
+    });
+    
+    button.addEventListener('mousedown', function() {
+        this.style.transform = 'translateY(1px) scale(0.98)';
+        vibrate();
+    });
+    
+    button.addEventListener('mouseup', function() {
+        this.style.transform = 'translateY(-2px) scale(1.05)';
+    });
+});
+</script>

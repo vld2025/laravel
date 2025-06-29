@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Filament\User\Widgets;
+
+use App\Models\Report;
+use App\Models\Documento;
+use Carbon\Carbon;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
+
+class AttivitaMensiliWidget extends BaseWidget
+{
+    protected static ?int $sort = 2;
+
+    protected function getStats(): array
+    {
+        $user = auth()->user();
+        $meseCorrente = Carbon::now();
+        
+        // Report questo mese
+        $numeroReport = Report::where('user_id', $user->id)
+            ->whereMonth('data', $meseCorrente->month)
+            ->whereYear('data', $meseCorrente->year)
+            ->count();
+            
+        // Documenti caricati questo mese
+        $numeroDocumenti = Documento::where('user_id', $user->id)
+            ->whereMonth('created_at', $meseCorrente->month)
+            ->whereYear('created_at', $meseCorrente->year)
+            ->count();
+            
+        // Mini-grafico ultimi 6 mesi Report
+        $reportTrend = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $mese = Carbon::now()->subMonths($i);
+            $count = Report::where('user_id', $user->id)
+                ->whereMonth('data', $mese->month)
+                ->whereYear('data', $mese->year)
+                ->count();
+            $reportTrend[] = $count;
+        }
+        
+        // Mini-grafico ultimi 6 mesi Documenti
+        $docTrend = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $mese = Carbon::now()->subMonths($i);
+            $count = Documento::where('user_id', $user->id)
+                ->whereMonth('created_at', $mese->month)
+                ->whereYear('created_at', $mese->year)
+                ->count();
+            $docTrend[] = $count;
+        }
+        
+        return [
+            Stat::make('Report Lavoro', $numeroReport)
+                ->description('Rapportini del mese')
+                ->descriptionIcon('heroicon-m-chart-bar')
+                ->chart($reportTrend)
+                ->color('primary'),
+                
+            Stat::make('Documenti', $numeroDocumenti)
+                ->description('Scontrini fotografati')
+                ->descriptionIcon('heroicon-m-camera')
+                ->chart($docTrend)
+                ->color('success'),
+        ];
+    }
+}

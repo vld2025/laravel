@@ -1,0 +1,12 @@
+<?php
+
+namespace App\Filament\User\Resources\SpesaExtraResource\Pages;
+
+use App\Filament\User\Resources\SpesaExtraResource;
+use Filament\Actions;
+use Filament\Resources\Pages\CreateRecord;
+
+class CreateSpesaExtra extends CreateRecord
+{
+    protected static string $resource = SpesaExtraResource::class;
+}

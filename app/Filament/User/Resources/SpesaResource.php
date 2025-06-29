@@ -33,23 +33,23 @@ class SpesaResource extends Resource
                 ->required()
                 ->numeric()
                 ->default(date('Y'))
-                ->label('Anno'),
+                ->label(__('ui.year')),
             
             Forms\Components\Select::make('mese')
                 ->required()
                 ->options([
-                    1 => 'Gennaio', 2 => 'Febbraio', 3 => 'Marzo',
-                    4 => 'Aprile', 5 => 'Maggio', 6 => 'Giugno',
-                    7 => 'Luglio', 8 => 'Agosto', 9 => 'Settembre',
-                    10 => 'Ottobre', 11 => 'Novembre', 12 => 'Dicembre'
+                    1 => __('ui.january'), 2 => __('ui.february'), 3 => __('ui.march'),
+                    4 => __('ui.april'), 5 => __('ui.may'), 6 => __('ui.june'),
+                    7 => __('ui.july'), 8 => __('ui.august'), 9 => __('ui.september'),
+                    10 => __('ui.october'), 11 => __('ui.november'), 12 => __('ui.december')
                 ])
                 ->default(date('n'))
-                ->label('Mese'),
+                ->label(__('ui.month')),
             
             Forms\Components\TextInput::make('descrizione')
                 ->maxLength(255)
-                ->label('Descrizione (opzionale)')
-                ->placeholder('Descrizione della spesa...'),
+                ->label(__('ui.optional_description'))
+                ->placeholder(__('ui.expense_description_placeholder')),
             
             Forms\Components\FileUpload::make('file')
                 ->required()
@@ -58,7 +58,7 @@ class SpesaResource extends Resource
                 ->directory('spese')
                 ->downloadable()
                 ->openable()
-                ->label('Seleziona file o scansiona ricevuta')
+                ->label(__('ui.scan_receipt'))
                 ->columnSpanFull(),
         ]);
     }
@@ -74,36 +74,36 @@ class SpesaResource extends Resource
             })
             ->columns([
                 Tables\Columns\TextColumn::make('anno')
-                    ->label('Anno')
+                    ->label(__('ui.year'))
                     ->width('60px')
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('mese')
-                    ->label('Mese')
+                    ->label(__('ui.month'))
                     ->formatStateUsing(fn ($state) => match($state) {
-                        1 => 'Gen', 2 => 'Feb', 3 => 'Mar',
-                        4 => 'Apr', 5 => 'Mag', 6 => 'Giu',
-                        7 => 'Lug', 8 => 'Ago', 9 => 'Set',
-                        10 => 'Ott', 11 => 'Nov', 12 => 'Dic',
+                        1 => __('ui.jan'), 2 => __('ui.feb'), 3 => __('ui.mar'),
+                        4 => __('ui.apr'), 5 => __('ui.may_short'), 6 => __('ui.jun'),
+                        7 => __('ui.jul'), 8 => __('ui.aug'), 9 => __('ui.sep'),
+                        10 => __('ui.oct'), 11 => __('ui.nov'), 12 => __('ui.dec'),
                         default => $state
                     })
                     ->width('50px')
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('descrizione')
-                    ->label('Descrizione')
+                    ->label(__('ui.description'))
                     ->limit(30)
-                    ->placeholder('Nessuna descrizione')
+                    ->placeholder(__('ui.no_description'))
                     ->wrap(),
                 
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime('d/m/Y')
                     ->sortable()
-                    ->label('Data')
+                    ->label(__('ui.date'))
                     ->width('50px'),
                 
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Utente')
+                    ->label(__('ui.user'))
                     ->visible(fn () => auth()->user()->isAdmin() || auth()->user()->isManager()),
             ])
             ->filters([
@@ -112,17 +112,17 @@ class SpesaResource extends Resource
                 
                 Tables\Filters\SelectFilter::make('mese')
                     ->options([
-                        1 => 'Gennaio', 2 => 'Febbraio', 3 => 'Marzo',
-                        4 => 'Aprile', 5 => 'Maggio', 6 => 'Giugno',
-                        7 => 'Luglio', 8 => 'Agosto', 9 => 'Settembre',
-                        10 => 'Ottobre', 11 => 'Novembre', 12 => 'Dicembre'
+                        1 => __('ui.january'), 2 => __('ui.february'), 3 => __('ui.march'),
+                        4 => __('ui.april'), 5 => __('ui.may'), 6 => __('ui.june'),
+                        7 => __('ui.july'), 8 => __('ui.august'), 9 => __('ui.september'),
+                        10 => __('ui.october'), 11 => __('ui.november'), 12 => __('ui.december')
                     ]),
             ])
             ->actions([
                 Tables\Actions\Action::make('open')
                     ->label('')
                     ->icon('heroicon-o-eye')
-                    ->tooltip('Visualizza spesa')
+                    ->tooltip(__('ui.view_expense'))
                     ->color('primary')
                     ->url(fn (Spesa $record): string => static::getUrl('view', ['record' => $record]))
                     ->size('sm'),
@@ -130,7 +130,7 @@ class SpesaResource extends Resource
                 Tables\Actions\Action::make('download')
                     ->label('')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->tooltip('Scarica file')
+                    ->tooltip(__('ui.download_file'))
                     ->action(function (Spesa $record) {
                         if (!$record->file || !Storage::disk('public')->exists($record->file)) {
                             \Filament\Notifications\Notification::make()
@@ -159,24 +159,24 @@ class SpesaResource extends Resource
                     ->schema([
                         Infolists\Components\Group::make([
                             Infolists\Components\TextEntry::make('anno')
-                                ->label('Anno')
+                                ->label(__('ui.year'))
                                 ->size(Infolists\Components\TextEntry\TextEntrySize::Large)
                                 ->weight('bold'),
                             
                             Infolists\Components\TextEntry::make('mese')
-                                ->label('Mese')
+                                ->label(__('ui.month'))
                                 ->formatStateUsing(fn ($state) => match($state) {
-                                    1 => 'Gennaio', 2 => 'Febbraio', 3 => 'Marzo',
-                                    4 => 'Aprile', 5 => 'Maggio', 6 => 'Giugno',
-                                    7 => 'Luglio', 8 => 'Agosto', 9 => 'Settembre',
-                                    10 => 'Ottobre', 11 => 'Novembre', 12 => 'Dicembre',
+                                    1 => __('ui.january'), 2 => __('ui.february'), 3 => __('ui.march'),
+                                    4 => __('ui.april'), 5 => __('ui.may'), 6 => __('ui.june'),
+                                    7 => __('ui.july'), 8 => __('ui.august'), 9 => __('ui.september'),
+                                    10 => __('ui.october'), 11 => __('ui.november'), 12 => __('ui.december'),
                                     default => $state
                                 }),
                         ])->columns(2),
                         
                         Infolists\Components\TextEntry::make('descrizione')
-                            ->label('Descrizione')
-                            ->placeholder('Nessuna descrizione disponibile')
+                            ->label(__('ui.description'))
+                            ->placeholder(__('ui.no_description_available'))
                             ->visible(fn ($record) => !empty($record->descrizione)),
                         
                         Infolists\Components\Group::make([
@@ -200,12 +200,12 @@ class SpesaResource extends Resource
                     ])
                     ->headerActions([
                         Infolists\Components\Actions\Action::make('back')
-                            ->label('← Torna alla Lista')
+                            ->label(__('ui.back_to_list'))
                             ->color('gray')
                             ->url(fn () => static::getUrl('index')),
                         
                         Infolists\Components\Actions\Action::make('download')
-                            ->label('Scarica')
+                            ->label(__('ui.download'))
                             ->icon('heroicon-o-arrow-down-tray')
                             ->color('success')
                             ->action(function ($record) {
@@ -219,7 +219,7 @@ class SpesaResource extends Resource
                             }),
                         
                         Infolists\Components\Actions\Action::make('edit')
-                            ->label('Modifica')
+                            ->label(__('ui.edit'))
                             ->icon('heroicon-o-pencil')
                             ->color('warning')
                             ->url(fn ($record) => static::getUrl('edit', ['record' => $record]))
