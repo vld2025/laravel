@@ -334,6 +334,6 @@ return [
     'download_tooltip' => 'Herunterladen',
 
     // Widget descriptions
-    'hours_due_description' => 'von :hoursh erforderlich (:percentage%)',
+    'hours_due_description' => 'von {hours}h erforderlich ({percentage}%)',
     'reimbursement_description' => 'Erstattung: CHF',
 ];

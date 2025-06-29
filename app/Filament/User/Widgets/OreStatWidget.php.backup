@@ -65,7 +65,7 @@ class OreStatWidget extends BaseWidget
                 ->color('primary'),
                 
             Stat::make(__('ui.total_hours'), number_format($oreTotali, 1) . 'h')
-                ->description(__("ui.hours_due_description", ["hours" => $oreDovute, "percentage" => $percentuale]))
+                ->description("из {$oreDovute}ч положено ({$percentuale}%)")
                 ->descriptionIcon($percentuale >= 100 ? 'heroicon-m-check-circle' : 'heroicon-m-clock')
                 ->chart($oreTotaliTrend)
                 ->color($coloreOre),

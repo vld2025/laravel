@@ -338,8 +338,4 @@ return [
     'date' => 'Data',
     'view_tooltip' => 'Visualizza',
     'download_tooltip' => 'Scarica',
-
-    // Widget descriptions  
-    'hours_due_description' => 'di :hoursh dovute (:percentage%)',
-    'reimbursement_description' => 'Rimborso: CHF',
 ];

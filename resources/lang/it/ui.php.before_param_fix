@@ -340,6 +340,6 @@ return [
     'download_tooltip' => 'Scarica',
 
     // Widget descriptions  
-    'hours_due_description' => 'di :hoursh dovute (:percentage%)',
+    'hours_due_description' => 'di {hours}h dovute ({percentage}%)',
     'reimbursement_description' => 'Rimborso: CHF',
 ];

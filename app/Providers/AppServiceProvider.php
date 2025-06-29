@@ -14,56 +14,27 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // SOLO il pulsante cambio vista - NESSUN controllo mobile
+        // Pulsante cambio vista INTEGRATO nella topbar
         FilamentView::registerRenderHook(
-            'panels::head.end',
+            'panels::topbar.end',
             function (): string {
                 if (!auth()->check() || !auth()->user()->canViewAllData()) {
                     return '';
                 }
-                
-                return '<style>
-                .vld-switch-btn {
-                    position: fixed !important;
-                    top: 15px !important;
-                    right: 80px !important;
-                    z-index: 9999 !important;
-                    background: rgba(173, 216, 230, 0.5) !important;
-                    color: #1e40af !important;
-                    padding: 8px 12px !important;
-                    border-radius: 6px !important;
-                    text-decoration: none !important;
-                    font-weight: 600 !important;
-                    font-size: 13px !important;
-                    border: 1px solid rgba(173, 216, 230, 0.7) !important;
-                    transition: all 0.2s !important;
-                    backdrop-filter: blur(4px) !important;
-                }
-                .vld-switch-btn:hover {
-                    background: rgba(173, 216, 230, 0.7) !important;
-                }
-                </style>
-                <script>
-                document.addEventListener("DOMContentLoaded", function() {
-                    const topbar = document.querySelector(".fi-topbar");
-                    if (topbar && !document.querySelector(".vld-switch-btn")) {
-                        const btn = document.createElement("a");
-                        btn.className = "vld-switch-btn";
-                        
-                        if (window.location.pathname.includes("/admin")) {
-                            btn.href = "/user";
-                            btn.innerHTML = "📱 Vista Mobile";
-                        } else if (window.location.pathname.includes("/user")) {
-                            btn.href = "/admin";
-                            btn.innerHTML = "🖥️ Vista Desktop";
-                        }
-                        
-                        if (btn.href) {
-                            document.body.appendChild(btn);
-                        }
-                    }
-                });
-                </script>';
+
+                return '<div style="display: flex; align-items: center; gap: 12px; margin-right: 12px;">
+                    <!-- PULSANTE VISTA MOBILE/DESKTOP -->
+                    <a href="' . (request()->is('admin*') ? '/user' : '/admin') . '" 
+                       style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; 
+                              background: rgba(173, 216, 230, 0.5); color: #1e40af; 
+                              border-radius: 6px; text-decoration: none; font-weight: 600; 
+                              font-size: 12px; border: 1px solid rgba(173, 216, 230, 0.7); 
+                              transition: all 0.2s; backdrop-filter: blur(4px);"
+                       onmouseover="this.style.background=\'rgba(173, 216, 230, 0.7)\'"
+                       onmouseout="this.style.background=\'rgba(173, 216, 230, 0.5)\'">
+                        ' . (request()->is('admin*') ? '📱 Vista Mobile' : '🖥️ Vista Desktop') . '
+                    </a>
+                </div>';
             }
         );
     }

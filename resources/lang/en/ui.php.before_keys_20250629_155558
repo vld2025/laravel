@@ -332,8 +332,4 @@ return [
     'date' => 'Date',
     'view_tooltip' => 'View',
     'download_tooltip' => 'Download',
-
-    // Widget descriptions
-    'hours_due_description' => 'of :hoursh required (:percentage%)',
-    'reimbursement_description' => 'Reimbursement: CHF',
 ];

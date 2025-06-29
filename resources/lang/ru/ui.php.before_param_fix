@@ -335,6 +335,6 @@ return [
     'download_tooltip' => 'Скачать',
 
     // Widget descriptions
-    'hours_due_description' => 'из :hoursч положено (:percentage%)',
+    'hours_due_description' => 'из {hours}ч положено ({percentage}%)',
     'reimbursement_description' => 'Возмещение: CHF',
 ];

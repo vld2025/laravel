@@ -55,7 +55,7 @@ class KmAutoWidget extends BaseWidget
         
         return [
             Stat::make(__('ui.private_car_km'), number_format($kmAutoPrivata) . ' km')
-                ->description(__("ui.reimbursement_description") . " " . number_format($rimborsoStimato, 2))
+                ->description("" . __("ui.reimbursement_text") . "  " . number_format($rimborsoStimato, 2))
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->chart($kmPrivataTrend)
                 ->color('warning'),

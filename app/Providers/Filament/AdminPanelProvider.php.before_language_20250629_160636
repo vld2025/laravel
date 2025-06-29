@@ -42,12 +42,6 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
             ])
-            ->renderHook('panels::topbar.end', function () {
-                if (auth()->check()) {
-                    return view('filament.admin.layout.admin-language-selector');
-                }
-                return '';
-            })
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

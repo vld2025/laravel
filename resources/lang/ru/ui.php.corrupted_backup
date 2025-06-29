@@ -333,8 +333,4 @@ return [
     'date' => 'Дата',
     'view_tooltip' => 'Просмотр',
     'download_tooltip' => 'Скачать',
-
-    // Widget descriptions
-    'hours_due_description' => 'из :hoursч положено (:percentage%)',
-    'reimbursement_description' => 'Возмещение: CHF',
 ];
