@@ -1,0 +1,192 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Filament\Resources\UserResource\Pages;
+use App\Models\User;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Hash;
+
+class UserResource extends Resource
+{
+    protected static ?string $model = User::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-users';
+
+    protected static ?string $modelLabel = 'Utente';
+
+    protected static ?string $pluralModelLabel = 'Utenti';
+
+    protected static ?string $navigationGroup = 'Amministrazione';
+
+    protected static ?int $navigationSort = 1;
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Section::make('Informazioni Base')
+                    ->schema([
+                        Forms\Components\FileUpload::make('avatar')
+                            ->image()
+                            ->directory('avatars')
+                            ->disk('public')
+                            ->label('Foto Profilo')
+                            ->columnSpanFull(),
+
+                        Forms\Components\TextInput::make('name')
+                            ->required()
+                            ->maxLength(255)
+                            ->label('Nome'),
+
+                        Forms\Components\TextInput::make('email')
+                            ->email()
+                            ->required()
+                            ->maxLength(255)
+                            ->unique(ignorable: fn ($record) => $record)
+                            ->label('Email'),
+
+                        Forms\Components\TextInput::make('password')
+                            ->password()
+                            ->dehydrateStateUsing(fn ($state) => Hash::make($state))
+                            ->dehydrated(fn ($state) => filled($state))
+                            ->required(fn (string $context): bool => $context === 'create')
+                            ->label('Password'),
+
+                        Forms\Components\Select::make('role')
+                            ->options([
+                                'admin' => 'Amministratore',
+                                'manager' => 'Manager',
+                                'user' => 'Utente',
+                            ])
+                            ->required()
+                            ->default('user')
+                            ->label('Ruolo'),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Contatti')
+                    ->schema([
+                        Forms\Components\TextInput::make('telefono')
+                            ->tel()
+                            ->label('Telefono'),
+
+                        Forms\Components\Textarea::make('indirizzo')
+                            ->rows(3)
+                            ->label('Indirizzo'),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Abbigliamento')
+                    ->schema([
+                        Forms\Components\TextInput::make('taglia_giacca')
+                            ->label('Taglia Giacca'),
+
+                        Forms\Components\TextInput::make('taglia_pantaloni')
+                            ->label('Taglia Pantaloni'),
+
+                        Forms\Components\TextInput::make('taglia_maglietta')
+                            ->label('Taglia Maglietta'),
+
+                        Forms\Components\TextInput::make('taglia_scarpe')
+                            ->label('Taglia Scarpe'),
+
+                        Forms\Components\Textarea::make('note_abbigliamento')
+                            ->rows(3)
+                            ->label('Note Abbigliamento'),
+                    ])->columns(4),
+            ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\ImageColumn::make('avatar')
+                    ->label('Avatar')
+                    ->circular()
+                    ->size(40),
+
+                Tables\Columns\TextColumn::make('name')
+                    ->label('Nome')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('email')
+                    ->label('Email')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\BadgeColumn::make('role')
+                    ->label('Ruolo')
+                    ->colors([
+                        'success' => 'admin',
+                        'warning' => 'manager',
+                        'primary' => 'user',
+                    ])
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'admin' => 'Amministratore',
+                        'manager' => 'Manager',
+                        'user' => 'Utente',
+                        default => $state,
+                    }),
+
+                Tables\Columns\TextColumn::make('telefono')
+                    ->label('Telefono')
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Creato il')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable(),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('role')
+                    ->options([
+                        'admin' => 'Amministratore',
+                        'manager' => 'Manager',
+                        'user' => 'Utente',
+                    ])
+                    ->label('Ruolo'),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->isAdmin()),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->isAdmin()),
+                ]),
+            ]);
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListUsers::route('/'),
+            'create' => Pages\CreateUser::route('/create'),
+            'edit' => Pages\EditUser::route('/{record}/edit'),
+        ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->canViewAllData() ?? false;
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $count = static::getModel()::count();
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return static::getNavigationBadge() ? "primary" : null;
+    }
+}

@@ -1,0 +1,30 @@
+            ->columns([
+                Tables\Columns\TextColumn::make('tipo')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'busta_paga' => 'success',
+                        'aziendale' => 'warning',
+                        'personale' => 'info',
+                        default => 'gray'
+                    })
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'busta_paga' => 'BP',
+                        'aziendale' => 'AZ',
+                        'personale' => 'PS',
+                        default => $state
+                    })
+                    ->width('60px'),
+                    
+                Tables\Columns\TextColumn::make('nome')
+                    ->searchable()
+                    ->label('Documento')
+                    ->wrap()
+                    ->limit(25)
+                    ->tooltip(fn ($record) => $record->nome),
+                    
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime('d/m')
+                    ->sortable()
+                    ->label('Data')
+                    ->width('50px'),
+            ])

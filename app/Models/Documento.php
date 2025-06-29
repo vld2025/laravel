@@ -17,6 +17,11 @@ class Documento extends Model
         'file',
     ];
 
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
     // Relazioni
     public function user(): BelongsTo
     {

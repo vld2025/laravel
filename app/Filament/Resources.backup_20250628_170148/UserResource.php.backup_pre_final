@@ -1,0 +1,7 @@
+[COPIA SOLO LA PARTE FILEUPLOAD SEMPLICE]
+Forms\Components\FileUpload::make('avatar')
+    ->image()
+    ->directory('avatars')
+    ->disk('public')
+    ->label('Foto Profilo')
+    ->columnSpanFull(),

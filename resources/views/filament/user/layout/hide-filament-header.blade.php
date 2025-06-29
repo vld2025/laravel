@@ -1,11 +1,8 @@
 <style>
-/* NASCONDI COMPLETAMENTE TUTTO L'HEADER E NAVIGATION DI FILAMENT */
-.fi-header,
+/* NASCONDI HEADER FILAMENT MA NON LE AZIONI */
 .fi-topbar,
 .fi-topbar-heading,
 .fi-sidebar-header,
-[data-slot="header"],
-header[class*="fi-"],
 nav[class*="fi-topbar"],
 .fi-navigation,
 .fi-breadcrumbs,
@@ -15,7 +12,22 @@ nav[class*="fi-topbar"],
     display: none !important;
 }
 
-/* NASCONDI LA SCRITTA "ACCEDI" E TUTTI I TITOLI */
+/* NASCONDI HEADER SOLO DOVE NON SERVONO AZIONI */
+.fi-header:not(.fi-page-header) {
+    display: none !important;
+}
+
+/* MOSTRA SEMPRE LE AZIONI HEADER */
+.fi-header-actions,
+.fi-page-header-actions,
+[data-slot="header-actions"] {
+    display: flex !important;
+    visibility: visible !important;
+    position: relative !important;
+    z-index: 100 !important;
+}
+
+/* NASCONDI SOLO I TITOLI */
 .fi-simple-header-heading,
 .fi-header-heading,
 .fi-simple-layout .fi-simple-header .fi-simple-header-heading,
@@ -36,7 +48,6 @@ h1[class*="fi-"],
     margin-top: 0 !important;
 }
 
-/* RIMUOVI SPACING AGGIUNTIVI */
 .fi-main-ctn {
     padding-top: 0 !important;
 }
@@ -64,15 +75,13 @@ body {
 <script>
 // RIMUOVI LA SCRITTA "ACCEDI" CON JAVASCRIPT
 document.addEventListener('DOMContentLoaded', function() {
-    // Trova tutti gli elementi che contengono "Accedi"
     const elements = document.querySelectorAll('h1, h2, h3, .fi-header-heading, .fi-simple-header-heading');
     elements.forEach(function(element) {
         if (element.textContent.trim() === 'Accedi') {
             element.style.display = 'none';
         }
     });
-    
-    // Nascondi anche tramite selettori più specifici
+
     setTimeout(function() {
         const headings = document.querySelectorAll('h1, h2, h3');
         headings.forEach(function(heading) {

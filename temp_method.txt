@@ -1,5 +1,0 @@
-    private function getUtentiDaProcessare(AutomazionePdf $config)
-    {
-        // Sempre tutti gli utenti, nessun filtro
-        return User::where('role', 'user')->get();
-    }

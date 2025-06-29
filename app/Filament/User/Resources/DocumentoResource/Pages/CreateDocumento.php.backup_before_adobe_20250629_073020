@@ -1,0 +1,118 @@
+<?php
+
+namespace App\Filament\User\Resources\DocumentoResource\Pages;
+
+use App\Filament\User\Resources\DocumentoResource;
+use App\Services\AzureDocumentService;
+use Filament\Resources\Pages\CreateRecord;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
+
+class CreateDocumento extends CreateRecord
+{
+    protected static string $resource = DocumentoResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
+    protected function afterCreate(): void
+    {
+        // Controlla switch per processing
+        $elaborazioneOcr = $this->record->elaborazione_ocr;
+        $ritaglioAutomatico = $this->record->ritaglio_automatico;
+
+        Log::info('Document created with switches', [
+            'documento_id' => $this->record->id,
+            'file' => $this->record->file,
+            'elaborazione_ocr' => $elaborazioneOcr,
+            'ritaglio_automatico' => $ritaglioAutomatico
+        ]);
+
+        // Solo se almeno uno switch è attivo
+        if ($elaborazioneOcr || $ritaglioAutomatico) {
+            $this->processWithSwitches($this->record->file, $elaborazioneOcr, $ritaglioAutomatico);
+        } else {
+            // Nessun processing - solo notifica semplice
+            Notification::make()
+                ->title('📄 Documento salvato!')
+                ->body('Il documento è stato caricato senza elaborazione automatica.')
+                ->success()
+                ->send();
+        }
+    }
+
+    private function processWithSwitches(string $filePath, bool $elaborazioneOcr, bool $ritaglioAutomatico): void
+    {
+        try {
+            Log::info('Starting processing with switches', [
+                'file' => $filePath,
+                'ocr' => $elaborazioneOcr,
+                'crop' => $ritaglioAutomatico
+            ]);
+
+            $azureService = app(AzureDocumentService::class);
+
+            if (!$azureService->isConfigured() && $elaborazioneOcr) {
+                Notification::make()
+                    ->title('📄 Documento salvato!')
+                    ->body('Il documento è stato salvato. Servizio OCR non configurato.')
+                    ->warning()
+                    ->send();
+                return;
+            }
+
+            // Chiama processing con switch
+            $result = $azureService->processDocumentWithSwitches($filePath, $elaborazioneOcr, $ritaglioAutomatico);
+
+            if ($result['success']) {
+                // Aggiorna database con risultati
+                $updateData = [];
+                
+                if ($elaborazioneOcr) {
+                    $updateData['ai_testo_estratto'] = $result['extracted_text'];
+                    $updateData['ai_processato'] = true;
+                    $updateData['ai_processato_at'] = now();
+                }
+
+                $this->record->update($updateData);
+
+                Log::info('Processing completed successfully', [
+                    'documento_id' => $this->record->id,
+                    'ocr_enabled' => $elaborazioneOcr,
+                    'crop_enabled' => $ritaglioAutomatico,
+                    'adobe_processed' => $result['adobe_processed'] ?? false
+                ]);
+
+                // NESSUNA NOTIFICA - come richiesto
+                
+            } else {
+                // Errore processing
+                if ($elaborazioneOcr) {
+                    $this->record->update([
+                        'ai_testo_estratto' => 'Errore: ' . ($result['error'] ?? 'Errore sconosciuto'),
+                        'ai_processato' => true,
+                        'ai_processato_at' => now(),
+                    ]);
+                }
+
+                Log::error('Processing failed', [
+                    'error' => $result['error'] ?? 'Unknown error'
+                ]);
+
+                // NESSUNA NOTIFICA ERRORE - solo log
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Processing exception: ' . $e->getMessage());
+
+            // NESSUNA NOTIFICA ECCEZIONE - solo log
+        }
+    }
+}

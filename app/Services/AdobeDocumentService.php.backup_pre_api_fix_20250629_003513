@@ -1,0 +1,332 @@
+<?php
+
+namespace App\Services;
+
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+
+class AdobeDocumentService
+{
+    protected $client;
+    protected $clientId;
+    protected $clientSecret;
+    protected $organizationId;
+    protected $accessToken;
+
+    public function __construct()
+    {
+        $this->clientId = config('adobe.document_services.client_id');
+        $this->clientSecret = config('adobe.document_services.client_secret');
+        $this->organizationId = config('adobe.document_services.organization_id');
+        
+        $this->client = new Client([
+            'timeout' => 120,
+            'verify' => false
+        ]);
+    }
+
+    /**
+     * Ritaglia automaticamente il documento dall'immagine usando Adobe
+     */
+    public function cropDocument(string $filePath): array
+    {
+        try {
+            Log::info("Starting Adobe document cropping", ['file' => $filePath]);
+
+            // Step 1: Ottieni access token
+            $tokenResult = $this->getAccessToken();
+            if (!$tokenResult['success']) {
+                throw new \Exception('Adobe authentication failed: ' . $tokenResult['error']);
+            }
+
+            $this->accessToken = $tokenResult['access_token'];
+
+            // Step 2: Upload file ad Adobe
+            $uploadResult = $this->uploadFileToAdobe($filePath);
+            if (!$uploadResult['success']) {
+                throw new \Exception('Adobe upload failed: ' . $uploadResult['error']);
+            }
+
+            // Step 3: Richiedi crop/enhance del documento
+            $cropResult = $this->requestDocumentCrop($uploadResult['asset_id']);
+            if (!$cropResult['success']) {
+                throw new \Exception('Adobe crop failed: ' . $cropResult['error']);
+            }
+
+            // Step 4: Download file processato
+            $downloadResult = $this->downloadProcessedFile($cropResult['asset_id'], $filePath);
+            if (!$downloadResult['success']) {
+                throw new \Exception('Adobe download failed: ' . $downloadResult['error']);
+            }
+
+            Log::info("Adobe document cropping completed successfully", [
+                'file' => $filePath,
+                'original_size' => $uploadResult['original_size'],
+                'processed_size' => $downloadResult['processed_size'],
+                'adobe_job_id' => $cropResult['job_id']
+            ]);
+
+            return [
+                'success' => true,
+                'processed_file_path' => $filePath,
+                'original_size' => $uploadResult['original_size'],
+                'processed_size' => $downloadResult['processed_size'],
+                'adobe_job_id' => $cropResult['job_id'],
+                'processing_time' => $downloadResult['processing_time']
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Adobe document cropping error: ' . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'processed_file_path' => null
+            ];
+        }
+    }
+
+    /**
+     * Ottieni access token da Adobe
+     */
+    private function getAccessToken(): array
+    {
+        try {
+            $response = $this->client->post('https://ims-na1.adobelogin.com/ims/token/v3', [
+                'form_params' => [
+                    'grant_type' => 'client_credentials',
+                    'client_id' => $this->clientId,
+                    'client_secret' => $this->clientSecret,
+                    'scope' => 'openid,AdobeID,additional_info.projectedProductContext,read_organizations,additional_info.roles'
+                ]
+            ]);
+
+            $data = json_decode($response->getBody(), true);
+
+            if (isset($data['access_token'])) {
+                return [
+                    'success' => true,
+                    'access_token' => $data['access_token']
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => 'No access token in response'
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Upload file ad Adobe Cloud
+     */
+    private function uploadFileToAdobe(string $filePath): array
+    {
+        try {
+            $publicDisk = Storage::disk('public');
+            $fileContent = $publicDisk->get($filePath);
+            $mimeType = $publicDisk->mimeType($filePath);
+            $fileName = basename($filePath);
+
+            // Step 1: Richiedi upload URL
+            $response = $this->client->post('https://pdf-services.adobe.io/assets', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->accessToken,
+                    'X-API-Key' => $this->clientId,
+                    'Content-Type' => 'application/json'
+                ],
+                'json' => [
+                    'mediaType' => $mimeType,
+                    'dc:format' => $mimeType
+                ]
+            ]);
+
+            $uploadData = json_decode($response->getBody(), true);
+            
+            if (!isset($uploadData['uploadUri']) || !isset($uploadData['assetID'])) {
+                throw new \Exception('Invalid upload response from Adobe');
+            }
+
+            // Step 2: Upload file content
+            $uploadResponse = $this->client->put($uploadData['uploadUri'], [
+                'headers' => [
+                    'Content-Type' => $mimeType
+                ],
+                'body' => $fileContent
+            ]);
+
+            if ($uploadResponse->getStatusCode() !== 200) {
+                throw new \Exception('File upload to Adobe failed');
+            }
+
+            return [
+                'success' => true,
+                'asset_id' => $uploadData['assetID'],
+                'upload_uri' => $uploadData['uploadUri'],
+                'original_size' => strlen($fileContent)
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Richiedi crop/enhancement del documento
+     */
+    private function requestDocumentCrop(string $assetId): array
+    {
+        try {
+            // Usa Adobe Document Generation per migliorare e ritagliare
+            $response = $this->client->post('https://pdf-services.adobe.io/operation/documentgeneration', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->accessToken,
+                    'X-API-Key' => $this->clientId,
+                    'Content-Type' => 'application/json'
+                ],
+                'json' => [
+                    'assetID' => $assetId,
+                    'outputFormat' => 'pdf',
+                    'options' => [
+                        'documentEnhancement' => true,
+                        'imageCropping' => true,
+                        'autoRotate' => true,
+                        'removeBackground' => true
+                    ]
+                ]
+            ]);
+
+            $jobData = json_decode($response->getBody(), true);
+
+            if (!isset($jobData['location'])) {
+                throw new \Exception('No job location in Adobe response');
+            }
+
+            // Polling per completamento job
+            $jobResult = $this->pollJobCompletion($jobData['location']);
+            
+            return $jobResult;
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Polling per completamento job Adobe
+     */
+    private function pollJobCompletion(string $jobLocation): array
+    {
+        $maxAttempts = 30;
+        $attempt = 0;
+
+        while ($attempt < $maxAttempts) {
+            try {
+                $response = $this->client->get($jobLocation, [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $this->accessToken,
+                        'X-API-Key' => $this->clientId
+                    ]
+                ]);
+
+                $jobData = json_decode($response->getBody(), true);
+
+                if ($jobData['status'] === 'done') {
+                    return [
+                        'success' => true,
+                        'asset_id' => $jobData['asset']['assetID'],
+                        'download_uri' => $jobData['asset']['downloadUri'],
+                        'job_id' => $jobData['jobId']
+                    ];
+                }
+
+                if ($jobData['status'] === 'failed') {
+                    throw new \Exception('Adobe job failed: ' . ($jobData['error'] ?? 'Unknown error'));
+                }
+
+                sleep(2);
+                $attempt++;
+
+            } catch (\Exception $e) {
+                return [
+                    'success' => false,
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+
+        return [
+            'success' => false,
+            'error' => 'Adobe job timeout'
+        ];
+    }
+
+    /**
+     * Download file processato da Adobe
+     */
+    private function downloadProcessedFile(string $assetId, string $originalPath): array
+    {
+        try {
+            $startTime = microtime(true);
+
+            // Get asset info per download URI
+            $response = $this->client->get("https://pdf-services.adobe.io/assets/{$assetId}", [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->accessToken,
+                    'X-API-Key' => $this->clientId
+                ]
+            ]);
+
+            $assetData = json_decode($response->getBody(), true);
+            
+            if (!isset($assetData['downloadUri'])) {
+                throw new \Exception('No download URI from Adobe');
+            }
+
+            // Download processed file
+            $downloadResponse = $this->client->get($assetData['downloadUri']);
+            $processedContent = $downloadResponse->getBody()->getContents();
+
+            // Salva file processato (sostituisce originale)
+            $publicDisk = Storage::disk('public');
+            $publicDisk->put($originalPath, $processedContent);
+
+            $endTime = microtime(true);
+
+            return [
+                'success' => true,
+                'processed_size' => strlen($processedContent),
+                'processing_time' => round($endTime - $startTime, 2)
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Verifica se Adobe è configurato
+     */
+    public function isConfigured(): bool
+    {
+        return !empty($this->clientId) && 
+               !empty($this->clientSecret) && 
+               !empty($this->organizationId);
+    }
+}

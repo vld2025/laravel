@@ -1,0 +1,28 @@
+{
+  "name": "VLD Service GmbH",
+  "short_name": "VLD Service",
+  "description": "Sistema gestionale VLD Service GmbH - Mobile App",
+  "start_url": "/user",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/images/logo/1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/favicon/f2.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "it",
+  "dir": "ltr"
+}

@@ -1,0 +1,87 @@
+<!-- Document Scanner Component -->
+<div id="document-scanner" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 9999;">
+    <div style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
+        <!-- Header Scanner -->
+        <div style="background: rgba(0,0,0,0.8); color: white; padding: 15px; text-align: center;">
+            <h3 style="margin: 0; font-size: 18px;">Scansiona Documento</h3>
+            <p style="margin: 5px 0 0 0; font-size: 14px;">Posiziona il documento nel riquadro</p>
+        </div>
+        
+        <!-- Camera View -->
+        <div style="flex: 1; position: relative; display: flex; align-items: center; justify-content: center;">
+            <video id="scanner-video" style="width: 100%; height: 100%; object-fit: cover;" autoplay muted playsinline></video>
+            <canvas id="scanner-canvas" style="display: none;"></canvas>
+            
+            <!-- Overlay Guide -->
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; height: 60%; border: 3px solid #10b981; border-radius: 10px; background: rgba(16, 185, 129, 0.1);"></div>
+        </div>
+        
+        <!-- Controls -->
+        <div style="background: rgba(0,0,0,0.8); padding: 20px; display: flex; justify-content: space-around; align-items: center;">
+            <button id="scanner-cancel" style="background: #ef4444; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px;">Annulla</button>
+            <button id="scanner-capture" style="background: #10b981; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; width: 80px; height: 80px; border-radius: 50%;">📷</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentStream = null;
+
+function openDocumentScanner() {
+    document.getElementById('document-scanner').style.display = 'block';
+    startCamera();
+}
+
+async function startCamera() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { 
+                facingMode: 'environment',
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            }
+        });
+        
+        currentStream = stream;
+        const video = document.getElementById('scanner-video');
+        video.srcObject = stream;
+    } catch (err) {
+        console.error('Errore camera:', err);
+        alert('Impossibile accedere alla camera');
+    }
+}
+
+function stopCamera() {
+    if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+    }
+}
+
+function captureDocument() {
+    const video = document.getElementById('scanner-video');
+    const canvas = document.getElementById('scanner-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    
+    if (window.saveScannedDocument) {
+        window.saveScannedDocument(dataUrl);
+    }
+    
+    document.getElementById('document-scanner').style.display = 'none';
+    stopCamera();
+}
+
+document.getElementById('scanner-cancel').addEventListener('click', () => {
+    document.getElementById('document-scanner').style.display = 'none';
+    stopCamera();
+});
+
+document.getElementById('scanner-capture').addEventListener('click', captureDocument);
+
+window.openDocumentScanner = openDocumentScanner;
+</script>

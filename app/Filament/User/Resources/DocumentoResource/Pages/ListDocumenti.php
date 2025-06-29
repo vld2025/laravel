@@ -1,0 +1,25 @@
+<?php
+namespace App\Filament\User\Resources\DocumentoResource\Pages;
+use App\Filament\User\Resources\DocumentoResource;
+use Filament\Actions;
+use Filament\Resources\Pages\ListRecords;
+
+class ListDocumenti extends ListRecords
+{
+    protected static string $resource = DocumentoResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\CreateAction::make()
+                ->label('+ Nuovo')
+                ->color('success')
+                ->size('sm'),
+        ];
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+}

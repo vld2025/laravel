@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 use App\Models\Spesa;
 use App\Models\User;
+use App\Models\Report;
 use App\Services\BackupService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -255,5 +256,79 @@ class PdfController extends Controller
         ];
         
         return $qrBillService->generateQrBill($qrData);
+    }
+
+    /**
+     * Genera PDF reports mensili per tutti gli utenti
+     */
+    public function generateReportsMensiliTuttiUtenti(Request $request)
+    {
+        // Solo admin e manager possono generare PDF per tutti
+        if (!auth()->user()->canViewAllData()) {
+            abort(403, 'Non autorizzato');
+        }
+
+        $anno = $request->get('anno', date('Y'));
+        $mese = $request->get('mese', date('n'));
+        $users = User::where('role', 'user')->get();
+        $generatedFiles = [];
+
+        foreach ($users as $user) {
+            $reports = Report::where('user_id', $user->id)
+                ->whereYear('data', $anno)
+                ->whereMonth('data', $mese)
+                ->with(['committente', 'cliente', 'commessa'])
+                ->get();
+
+            if ($reports->count() > 0) {
+                // Nomi dei mesi
+                $mesiNomi = [
+                    1 => 'Gennaio', 2 => 'Febbraio', 3 => 'Marzo', 4 => 'Aprile',
+                    5 => 'Maggio', 6 => 'Giugno', 7 => 'Luglio', 8 => 'Agosto',
+                    9 => 'Settembre', 10 => 'Ottobre', 11 => 'Novembre', 12 => 'Dicembre'
+                ];
+
+                $meseNome = $mesiNomi[$mese];
+
+                // Genera PDF
+                $pdf = Pdf::loadView('pdf.reports-mensili', compact(
+                    'user', 'reports', 'anno', 'mese', 'meseNome'
+                ));
+
+                $pdf->setPaper('A4', 'portrait');
+
+                // Nome file
+                $fileName = sprintf(
+                    'reports_%s_%s_%s.pdf',
+                    str_replace(' ', '_', strtolower($user->name)),
+                    $mese,
+                    $anno
+                );
+
+                $filePath = "pdf/reports/{$fileName}";
+                Storage::disk('public')->put($filePath, $pdf->output());
+
+                // Backup su NAS
+                try {
+                    $this->backupService->backupPDF($pdf->output(), 'Reports', $fileName);
+                } catch (\Exception $e) {
+                    Log::error('Errore backup PDF reports: ' . $e->getMessage());
+                }
+
+                $generatedFiles[] = [
+                    'user_name' => $user->name,
+                    'file_path' => $filePath,
+                    'download_url' => Storage::disk('public')->url($filePath),
+                    'file_name' => $fileName,
+                    'reports_count' => $reports->count()
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'files' => $generatedFiles,
+            'message' => count($generatedFiles) . ' file PDF reports generati'
+        ]);
     }
 }

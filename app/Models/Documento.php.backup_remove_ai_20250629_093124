@@ -1,0 +1,93 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Documento extends Model
+{
+    protected $table = 'documenti';
+
+    protected $fillable = [
+        'user_id',
+        'caricato_da',
+        'tipo',
+        'nome',
+        'file',
+        // AGGIUNTI I NUOVI CAMPI AI
+        'ai_testo_estratto',
+        'ai_processato',
+        'ai_processato_at',
+        'elaborazione_ocr',
+    ];
+
+    protected $casts = [
+        'ai_processato' => 'boolean',
+        'ai_processato_at' => 'datetime',
+        'elaborazione_ocr',
+    ];
+
+    // Relazioni
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function caricatoDa(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'caricato_da');
+    }
+
+    // Metodi helper
+    public function getFileUrlAttribute(): string
+    {
+        return asset('storage/' . $this->file);
+    }
+
+    public function getTipoLabelAttribute(): string
+    {
+        return match($this->tipo) {
+            'busta_paga' => 'Busta Paga',
+            'personale' => 'Documento Personale',
+            'aziendale' => 'Documento Aziendale',
+            default => $this->tipo
+        };
+    }
+
+    public function canUserAccess(User $user): bool
+    {
+        return match($this->tipo) {
+            'busta_paga' => $this->user_id === $user->id || $user->canViewAllData(),
+            'personale' => $this->user_id === $user->id || $user->canViewAllData(),
+            'aziendale' => true, // tutti possono vedere documenti aziendali
+            default => false
+        };
+    }
+
+    public static function getTipi(): array
+    {
+        return [
+            'busta_paga' => 'Busta Paga',
+            'personale' => 'Documento Personale',
+            'aziendale' => 'Documento Aziendale',
+        ];
+    }
+
+    // NUOVO METODO per vedere il testo AI
+    public function getAiSummaryAttribute(): string
+    {
+        if (!$this->ai_processato) {
+            return '⏳ Non processato';
+        }
+        
+        if (empty($this->ai_testo_estratto)) {
+            return '❌ Nessun testo riconosciuto';
+        }
+
+        // Mostra primi 50 caratteri del testo estratto
+        return strlen($this->ai_testo_estratto) > 50 
+            ? substr($this->ai_testo_estratto, 0, 50) . '...'
+            : $this->ai_testo_estratto;
+    }
+}

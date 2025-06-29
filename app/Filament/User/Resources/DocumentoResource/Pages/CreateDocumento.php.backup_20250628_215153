@@ -1,0 +1,105 @@
+<?php
+
+namespace App\Filament\User\Resources\DocumentoResource\Pages;
+
+use App\Filament\User\Resources\DocumentoResource;
+use App\Services\AIService;
+use Filament\Resources\Pages\CreateRecord;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
+
+class CreateDocumento extends CreateRecord
+{
+    protected static string $resource = DocumentoResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
+    protected function afterCreate(): void
+    {
+        // Processa il documento con ChatGPT dopo il salvataggio
+        if (!empty($this->record->file)) {
+            $this->processWithChatGPT($this->record->file);
+        }
+    }
+
+    private function processWithChatGPT(string $filePath): void
+    {
+        try {
+            Log::info('Processing document with ChatGPT', ['file' => $filePath]);
+
+            $aiService = app(AIService::class);
+
+            if (!$aiService->isConfigured()) {
+                Notification::make()
+                    ->title('📄 Documento salvato!')
+                    ->body('Il documento è stato salvato correttamente.')
+                    ->success()
+                    ->send();
+                return;
+            }
+
+            // Processa il documento per estrarre dati
+            $result = $aiService->processDocumentScan($filePath);
+
+            if ($result['success']) {
+                $extracted = $result['extracted_data'];
+
+                // Costruisci messaggio con dati estratti
+                $details = [];
+
+                if (!empty($extracted['descrizione'])) {
+                    $details[] = "📝 " . $extracted['descrizione'];
+                }
+
+                if (!empty($extracted['importo'])) {
+                    $details[] = "💰 CHF " . number_format($extracted['importo'], 2);
+                }
+
+                if (!empty($extracted['data'])) {
+                    $details[] = "📅 " . $extracted['data'];
+                }
+
+                if (!empty($extracted['fornitore'])) {
+                    $details[] = "🏢 " . $extracted['fornitore'];
+                }
+
+                $message = "🤖 ChatGPT ha analizzato il documento!";
+                if (!empty($details)) {
+                    $message .= "\n\n" . implode("\n", $details);
+                }
+
+                Notification::make()
+                    ->title('Analisi completata')
+                    ->body($message)
+                    ->success()
+                    ->persistent()
+                    ->send();
+
+                Log::info('ChatGPT processing successful', $extracted);
+            } else {
+                Notification::make()
+                    ->title('📄 Documento salvato!')
+                    ->body('Il documento è stato salvato. Elaborazione AI non riuscita.')
+                    ->warning()
+                    ->send();
+            }
+
+        } catch (\Exception $e) {
+            Log::error('ChatGPT processing error: ' . $e->getMessage());
+
+            Notification::make()
+                ->title('📄 Documento salvato!')
+                ->body('Il documento è stato salvato correttamente.')
+                ->success()
+                ->send();
+        }
+    }
+}

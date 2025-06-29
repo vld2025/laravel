@@ -1,0 +1,193 @@
+@auth
+<!-- HEADER FISSO MOBILE - SOLO SE LOGGATO -->
+<style>
+.avatar-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e5e7eb;
+    min-width: 200px;
+    z-index: 1000;
+}
+.avatar-dropdown.show {
+    display: block;
+}
+.avatar-container {
+    position: relative;
+}
+#avatarFileInput {
+    display: none;
+}
+</style>
+
+<header style="position: fixed; top: 0; left: 0; right: 0; z-index: 50; background: white; border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; height: 64px;">
+        <!-- LOGO A SINISTRA -->
+        <div style="display: flex; align-items: center;">
+            <img src="{{ asset('images/logo/1.png') }}" alt="VLD Service GmbH" style="height: 40px; width: auto;">
+        </div>
+
+        <!-- AVATAR A DESTRA -->
+        <div class="avatar-container">
+            <button onclick="toggleAvatarDropdown()" style="background: none; border: none; padding: 4px; border-radius: 50%; transition: background-color 0.2s;">
+                @if(auth()->user()->avatar_url)
+                    <img src="{{ auth()->user()->avatar_url }}" alt="Avatar {{ auth()->user()->name }}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #d1d5db;">
+                @else
+                    <div style="width: 40px; height: 40px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
+                        {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                    </div>
+                @endif
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div id="avatarDropdown" class="avatar-dropdown">
+                <div style="padding: 16px; border-bottom: 1px solid #f3f4f6;">
+                    <p style="font-weight: 600; color: #1f2937; margin: 0;">{{ auth()->user()->name }}</p>
+                    <p style="font-size: 14px; color: #6b7280; margin: 4px 0 0 0;">{{ auth()->user()->email }}</p>
+                </div>
+
+                <div style="padding: 8px;">
+                    <!-- CARICA AVATAR -->
+                    <button onclick="triggerAvatarUpload()" style="width: 100%; display: flex; align-items: center; padding: 8px 12px; font-size: 14px; color: #374151; background: none; border: none; border-radius: 6px; transition: background-color 0.2s; cursor: pointer;" onmouseover="this.style.backgroundColor='#f9fafb'" onmouseout="this.style.backgroundColor='transparent'">
+                        <svg style="width: 16px; height: 16px; margin-right: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Carica Avatar
+                    </button>
+
+                    <!-- LOGOUT -->
+                    <form method="POST" action="{{ route('filament.user.auth.logout') }}" style="margin: 0;">
+                        @csrf
+                        <button type="submit" style="width: 100%; display: flex; align-items: center; padding: 8px 12px; font-size: 14px; color: #dc2626; background: none; border: none; border-radius: 6px; transition: background-color 0.2s; cursor: pointer;" onmouseover="this.style.backgroundColor='#fef2f2'" onmouseout="this.style.backgroundColor='transparent'">
+                            <svg style="width: 16px; height: 16px; margin-right: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            Logout
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- INPUT FILE NASCOSTO -->
+<form id="avatarForm" action="{{ route('filament.user.upload-avatar') }}" method="POST" enctype="multipart/form-data" style="display: none;">
+    @csrf
+    <input type="file" id="avatarFileInput" name="avatar" accept="image/*" capture="user">
+</form>
+
+<script>
+function toggleAvatarDropdown() {
+    const dropdown = document.getElementById('avatarDropdown');
+    dropdown.classList.toggle('show');
+}
+
+function triggerAvatarUpload() {
+    document.getElementById('avatarDropdown').classList.remove('show');
+    document.getElementById('avatarFileInput').click();
+}
+
+document.getElementById('avatarFileInput').addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+        document.getElementById('avatarForm').submit();
+    }
+});
+
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('avatarDropdown');
+    const container = document.querySelector('.avatar-container');
+    if (!container.contains(event.target)) {
+        dropdown.classList.remove('show');
+    }
+});
+</script>
+@endauth
+
+<!-- Pulsante + Nuovo nella toolbar documenti -->
+
+<!-- Include Document Scanner quando siamo nella pagina create -->
+@if(request()->routeIs("filament.user.resources.documentos.create"))
+@endif
+
+<!-- Enhanced FileUpload Integration -->
+@if(request()->routeIs("filament.user.resources.documentos.create") || request()->routeIs("filament.user.resources.spesas.create"))
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    setTimeout(initEnhancedFileUpload, 1000);
+});
+
+function initEnhancedFileUpload() {
+    const fileInputs = document.querySelectorAll("input[type=file]");
+    fileInputs.forEach(fileInput => {
+        const uploadArea = fileInput.closest(".fi-fo-file-upload");
+        if (uploadArea) {
+            const clickableArea = uploadArea.querySelector("[data-testid=file-upload-dropzone]") || uploadArea;
+            clickableArea.addEventListener("click", function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                showUploadOptions(fileInput);
+            });
+        }
+    });
+}
+
+function showUploadOptions(fileInput) {
+    const modal = document.createElement("div");
+    modal.style.cssText = "position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 9998; display: flex; align-items: center; justify-content: center;";
+    modal.innerHTML = `<div style="background: white; border-radius: 15px; padding: 30px; margin: 20px; max-width: 400px; width: 90%;"><h3 style="margin: 0 0 20px 0; text-align: center; font-size: 20px; color: #333;">Carica Documento</h3><div style="display: flex; flex-direction: column; gap: 15px;"><button id="scan-option" style="background: #10b981; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 16px; cursor: pointer;">📷 Scansiona Documento</button><button id="gallery-option" style="background: #3b82f6; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 16px; cursor: pointer;">🖼️ Scegli da Galleria</button><button id="cancel-option" style="background: #6b7280; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 16px; cursor: pointer;">Annulla</button></div></div>`;
+    document.body.appendChild(modal);
+    
+    modal.querySelector("#scan-option").onclick = () => {
+        document.body.removeChild(modal);
+        window.currentFileInput = fileInput;
+        openDocumentScanner();
+    };
+    modal.querySelector("#gallery-option").onclick = () => {
+        document.body.removeChild(modal);
+        fileInput.click();
+    };
+    modal.querySelector("#cancel-option").onclick = () => {
+        document.body.removeChild(modal);
+    };
+}
+
+window.saveScannedDocument = function(dataUrl) {
+    if (!window.currentFileInput) return;
+    fetch(dataUrl).then(res => res.blob()).then(blob => {
+        const file = new File([blob], "scanned-document.jpg", { type: "image/jpeg" });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        window.currentFileInput.files = dt.files;
+        window.currentFileInput.dispatchEvent(new Event("change", { bubbles: true }));
+        window.currentFileInput = null;
+        
+        const toast = document.createElement("div");
+        toast.style.cssText = "position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 15px 20px; border-radius: 8px; z-index: 10000; font-weight: 500;";
+        toast.textContent = "📄 Documento scansionato e caricato!";
+        document.body.appendChild(toast);
+        setTimeout(() => document.body.removeChild(toast), 3000);
+    });
+};
+</script>
+@endif
+@if(request()->routeIs('filament.user.resources.documentos.index'))
+<style>
+.fi-ta-header-ctn .fi-ta-actions::before {
+    content: '+ Nuovo';
+    background: #10b981;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-right: 8px;
+}
+</style>
+@endif

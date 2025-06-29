@@ -29,17 +29,14 @@ class UserPanelProvider extends PanelProvider
                 'primary' => Color::Green,
                 'gray' => Color::Slate,
             ])
-            // ELIMINA COMPLETAMENTE LA SIDEBAR E NAVIGATION
             ->navigation(false)
             ->maxContentWidth('full')
-            // NASCONDI HEADER FILAMENT SOLO QUANDO LOGGATO
             ->renderHook('panels::styles.before', function () {
                 if (auth()->check()) {
                     return view('filament.user.layout.hide-filament-header');
                 }
                 return '';
             })
-            // LAYOUT MOBILE PERSONALIZZATO SOLO QUANDO LOGGATO
             ->renderHook('panels::body.start', function () {
                 if (auth()->check()) {
                     return view('filament.user.layout.mobile-header');
@@ -68,6 +65,9 @@ class UserPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
+            ->renderHook('panels::head.end', function () {
+                return view('filament.user.layout.pwa-head');
+            })
             ->authMiddleware([
                 Authenticate::class,
             ]);

@@ -1,0 +1,120 @@
+<?php
+
+namespace App\Services;
+
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+
+class AdobeDocumentService
+{
+    protected $client;
+    protected $clientId;
+    protected $clientSecret;
+    protected $orgId;
+
+    public function __construct()
+    {
+        $this->clientId = config('adobe.document_services.client_id');
+        $this->clientSecret = config('adobe.document_services.client_secret');
+        $this->orgId = config('adobe.document_services.organization_id');
+        
+        $this->client = new Client([
+            'timeout' => 120,
+            'verify' => false
+        ]);
+    }
+
+    /**
+     * CROP REALE con Adobe PDF Services API
+     */
+    public function cropDocument(string $filePath): array
+    {
+        try {
+            Log::info("Starting REAL Adobe PDF Services document crop", ['file' => $filePath]);
+
+            $accessToken = $this->getAccessToken();
+            if (!$accessToken) {
+                throw new \Exception('Adobe authentication failed');
+            }
+
+            $uploadResult = $this->uploadAsset($filePath, $accessToken);
+            if (!$uploadResult['success']) {
+                throw new \Exception('Upload failed: ' . $uploadResult['error']);
+            }
+
+            $cropJobResult = $this->createCropJob($uploadResult['asset_id'], $accessToken);
+            if (!$cropJobResult['success']) {
+                throw new \Exception('Crop job failed: ' . $cropJobResult['error']);
+            }
+
+            $pollResult = $this->pollJobStatus($cropJobResult['location'], $accessToken);
+            if (!$pollResult['success']) {
+                throw new \Exception('Polling failed: ' . $pollResult['error']);
+            }
+
+            // STEP IMPORTANTE: Converti PDF → JPEG
+            $imageResult = $this->convertPdfToJpeg($pollResult['pdf_asset_id'], $accessToken);
+            if (!$imageResult['success']) {
+                throw new \Exception('PDF to JPEG failed: ' . $imageResult['error']);
+            }
+
+            $downloadResult = $this->downloadAsset($imageResult['download_uri'], $filePath);
+
+            return [
+                'success' => true,
+                'processed_file_path' => $filePath,
+                'original_size' => $uploadResult['original_size'],
+                'processed_size' => $downloadResult['size'],
+                'adobe_job_id' => $cropJobResult['job_id'],
+                'processing_time' => $downloadResult['time']
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Adobe PDF Services crop error: ' . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'processed_file_path' => null
+            ];
+        }
+    }
+
+    private function convertPdfToJpeg(string $pdfAssetId, string $accessToken): array
+    {
+        try {
+            // USA ENDPOINT CORRETTO: /operation/pdftoimages
+            $response = $this->client->post('https://pdf-services.adobe.io/operation/pdftoimages', [
+                'headers' => [
+                    'X-API-Key' => $this->clientId,
+                    'Authorization' => 'Bearer ' . $accessToken,
+                    'Content-Type' => 'application/json'
+                ],
+                'json' => [
+                    'assetID' => $pdfAssetId,
+                    'targetFormat' => 'jpeg',
+                    'outputType' => 'listOfPageImages'
+                ]
+            ]);
+
+            if ($response->getStatusCode() !== 201) {
+                throw new \Exception('PDF to JPEG conversion failed');
+            }
+
+            $location = $response->getHeader('location')[0];
+            $pollResult = $this->pollJobStatus($location, $accessToken);
+            
+            return $pollResult;
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    // ... resto dei metodi identici ...
+    // (getAccessToken, uploadAsset, createCropJob, pollJobStatus, downloadAsset)
+}

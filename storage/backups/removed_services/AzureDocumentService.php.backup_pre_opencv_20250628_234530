@@ -1,0 +1,191 @@
+<?php
+
+namespace App\Services;
+
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+
+class AzureDocumentService
+{
+    protected $client;
+    protected $endpoint;
+    protected $apiKey;
+
+    public function __construct()
+    {
+        $this->endpoint = config('azure.document_intelligence.endpoint');
+        $this->apiKey = config('azure.document_intelligence.api_key');
+        $this->client = new Client([
+            'timeout' => 120,
+            'verify' => false // Per evitare problemi SSL in sviluppo
+        ]);
+    }
+
+    /**
+     * Processa documento con Azure Document Intelligence
+     * Ritorna immagine ritagliata + testo estratto
+     */
+    public function processDocument(string $filePath): array
+    {
+        try {
+            Log::info("Azure Document processing started", ['file' => $filePath]);
+
+            $publicDisk = Storage::disk('public');
+            
+            if (!$publicDisk->exists($filePath)) {
+                throw new \Exception("File non trovato: {$filePath}");
+            }
+
+            $fileContent = $publicDisk->get($filePath);
+            $mimeType = $publicDisk->mimeType($filePath);
+
+            // Step 1: Invia documento ad Azure per analisi
+            $analyzeResult = $this->analyzeDocument($fileContent, $mimeType);
+            
+            if (!$analyzeResult['success']) {
+                throw new \Exception($analyzeResult['error']);
+            }
+
+            // Step 2: Estrai il testo OCR
+            $extractedText = $this->extractTextFromResult($analyzeResult['data']);
+
+            return [
+                'success' => true,
+                'extracted_text' => $extractedText,
+                'document_type' => $analyzeResult['document_type'] ?? 'unknown',
+                'confidence' => $analyzeResult['confidence'] ?? 0.9,
+                'processing_time' => $analyzeResult['processing_time'] ?? 0,
+                'page_count' => $analyzeResult['page_count'] ?? 1
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Azure Document processing error: ' . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'extracted_text' => null
+            ];
+        }
+    }
+
+    /**
+     * Analizza documento con Azure Document Intelligence API
+     */
+    private function analyzeDocument(string $fileContent, string $mimeType): array
+    {
+        try {
+            // Endpoint per Document Intelligence Layout model (migliore per OCR)
+            $url = rtrim($this->endpoint, '/') . '/formrecognizer/documentModels/prebuilt-layout:analyze?api-version=2023-07-31';
+
+            $response = $this->client->post($url, [
+                'headers' => [
+                    'Ocp-Apim-Subscription-Key' => $this->apiKey,
+                    'Content-Type' => $mimeType
+                ],
+                'body' => $fileContent
+            ]);
+
+            if ($response->getStatusCode() !== 202) {
+                throw new \Exception('Azure API error: ' . $response->getStatusCode());
+            }
+
+            // Ottieni l'URL del risultato
+            $resultUrl = $response->getHeader('Operation-Location')[0];
+            
+            // Polling per il risultato
+            return $this->pollForResult($resultUrl);
+
+        } catch (\Exception $e) {
+            Log::error('Azure analyze error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Polling per ottenere il risultato dell'analisi
+     */
+    private function pollForResult(string $resultUrl): array
+    {
+        $maxAttempts = 30; // 30 secondi max
+        $attempt = 0;
+
+        while ($attempt < $maxAttempts) {
+            try {
+                $response = $this->client->get($resultUrl, [
+                    'headers' => [
+                        'Ocp-Apim-Subscription-Key' => $this->apiKey
+                    ]
+                ]);
+
+                $data = json_decode($response->getBody(), true);
+
+                if ($data['status'] === 'succeeded') {
+                    return [
+                        'success' => true,
+                        'data' => $data['analyzeResult'],
+                        'document_type' => 'document',
+                        'confidence' => 0.95,
+                        'processing_time' => $attempt,
+                        'page_count' => count($data['analyzeResult']['pages'] ?? [])
+                    ];
+                }
+
+                if ($data['status'] === 'failed') {
+                    throw new \Exception('Azure processing failed: ' . ($data['error']['message'] ?? 'Unknown error'));
+                }
+
+                // Attendi 1 secondo prima del prossimo tentativo
+                sleep(1);
+                $attempt++;
+
+            } catch (\Exception $e) {
+                Log::error('Azure polling error: ' . $e->getMessage());
+                return [
+                    'success' => false,
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+
+        return [
+            'success' => false,
+            'error' => 'Timeout: Azure processing took too long'
+        ];
+    }
+
+    /**
+     * Estrae tutto il testo dal risultato Azure
+     */
+    private function extractTextFromResult(array $analyzeResult): string
+    {
+        $text = '';
+
+        // Estrai il testo da tutte le pagine
+        if (isset($analyzeResult['pages'])) {
+            foreach ($analyzeResult['pages'] as $page) {
+                if (isset($page['words'])) {
+                    foreach ($page['words'] as $word) {
+                        $text .= $word['content'] . ' ';
+                    }
+                }
+                $text .= "\n"; // Nuova riga per ogni pagina
+            }
+        }
+
+        // Pulizia del testo
+        $text = preg_replace('/\s+/', ' ', $text); // Rimuovi spazi multipli
+        $text = trim($text);
+
+        return $text;
+    }
+
+    public function isConfigured(): bool
+    {
+        return !empty($this->endpoint) && !empty($this->apiKey);
+    }
+}

@@ -1,0 +1,123 @@
+<?php
+
+namespace App\Filament\User\Resources\DocumentoResource\Pages;
+
+use App\Filament\User\Resources\DocumentoResource;
+use App\Services\AzureDocumentService;
+use Filament\Resources\Pages\CreateRecord;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
+
+class CreateDocumento extends CreateRecord
+{
+    protected static string $resource = DocumentoResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
+    protected function afterCreate(): void
+    {
+        // Processa il documento con Azure dopo il salvataggio
+        if (!empty($this->record->file)) {
+            $this->processWithAzure($this->record->file);
+        }
+    }
+
+    private function processWithAzure(string $filePath): void
+    {
+        try {
+            Log::info('Processing document with Azure', ['file' => $filePath]);
+
+            $azureService = app(AzureDocumentService::class);
+
+            if (!$azureService->isConfigured()) {
+                Notification::make()
+                    ->title('📄 Documento salvato!')
+                    ->body('Il documento è stato salvato correttamente.')
+                    ->success()
+                    ->send();
+                return;
+            }
+
+            // Processa il documento con Azure
+            $result = $azureService->processDocument($filePath);
+
+            if ($result['success']) {
+                // *** SALVA I DATI NEL DATABASE ***
+                $this->record->update([
+                    'ai_testo_estratto' => $result['extracted_text'],
+                    'ai_processato' => true,
+                    'ai_processato_at' => now(),
+                ]);
+
+                Log::info('Azure processing successful', [
+                    'documento_id' => $this->record->id,
+                    'text_length' => strlen($result['extracted_text']),
+                    'document_type' => $result['document_type'],
+                    'confidence' => $result['confidence']
+                ]);
+
+                // Costruisci messaggio con risultati Azure
+                $details = [];
+                $details[] = "📄 Tipo: " . ($result['document_type'] ?? 'Documento');
+                $details[] = "🎯 Confidence: " . round(($result['confidence'] ?? 0) * 100) . "%";
+                $details[] = "⏱️ Tempo: " . ($result['processing_time'] ?? 0) . "s";
+                $details[] = "📃 Pagine: " . ($result['page_count'] ?? 1);
+
+                $message = "☁️ Azure ha analizzato il documento!";
+                $message .= "\n\n" . implode("\n", $details);
+
+                if (!empty($result['extracted_text'])) {
+                    $testoPreview = strlen($result['extracted_text']) > 150 
+                        ? substr($result['extracted_text'], 0, 150) . '...'
+                        : $result['extracted_text'];
+                    $message .= "\n\n📄 Testo riconosciuto:\n" . $testoPreview;
+                }
+
+                Notification::make()
+                    ->title('✅ Azure OCR completato!')
+                    ->body($message)
+                    ->success()
+                    ->persistent()
+                    ->send();
+
+            } else {
+                // Anche in caso di errore, segna come processato
+                $this->record->update([
+                    'ai_testo_estratto' => 'Errore Azure: ' . ($result['error'] ?? 'Errore sconosciuto'),
+                    'ai_processato' => true,
+                    'ai_processato_at' => now(),
+                ]);
+
+                Notification::make()
+                    ->title('📄 Documento salvato!')
+                    ->body('Il documento è stato salvato. Processing Azure non riuscito.')
+                    ->warning()
+                    ->send();
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Azure processing error: ' . $e->getMessage());
+
+            // Salva l'errore nel database
+            $this->record->update([
+                'ai_testo_estratto' => 'Errore nell\'elaborazione Azure: ' . $e->getMessage(),
+                'ai_processato' => true,
+                'ai_processato_at' => now(),
+            ]);
+
+            Notification::make()
+                ->title('📄 Documento salvato!')
+                ->body('Il documento è stato salvato correttamente.')
+                ->success()
+                ->send();
+        }
+    }
+}

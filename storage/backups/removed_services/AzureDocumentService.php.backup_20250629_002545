@@ -1,0 +1,223 @@
+<?php
+
+namespace App\Services;
+
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use App\Services\DocumentCropperService;
+
+class AzureDocumentService
+{
+    protected $client;
+    protected $documentEndpoint;
+    protected $documentApiKey;
+    protected $cropper;
+
+    public function __construct()
+    {
+        $this->documentEndpoint = config('azure.document_intelligence.endpoint');
+        $this->documentApiKey = config('azure.document_intelligence.api_key');
+        $this->cropper = new DocumentCropperService();
+        
+        $this->client = new Client([
+            'timeout' => 120,
+            'verify' => false
+        ]);
+    }
+
+    /**
+     * Processa documento: ritaglio locale + Azure OCR
+     */
+    public function processDocument(string $filePath): array
+    {
+        try {
+            Log::info("Azure + Local Cropping processing started", ['file' => $filePath]);
+
+            $publicDisk = Storage::disk('public');
+            
+            if (!$publicDisk->exists($filePath)) {
+                throw new \Exception("File non trovato: {$filePath}");
+            }
+
+            $originalContent = $publicDisk->get($filePath);
+            $mimeType = $publicDisk->mimeType($filePath);
+            $originalSize = strlen($originalContent);
+
+            // Step 1: RITAGLIO LOCALE con DocumentCropper
+            $croppedImage = null;
+            if (str_starts_with($mimeType, 'image/')) {
+                Log::info("Starting local document cropping", ['original_size' => $originalSize]);
+                
+                $croppedImage = $this->cropper->cropDocument($originalContent);
+                
+                if ($croppedImage) {
+                    // Sostituisci il file originale con quello ritagliato
+                    $publicDisk->put($filePath, $croppedImage);
+                    $newSize = strlen($croppedImage);
+                    
+                    Log::info("Document cropped and saved locally", [
+                        'file' => $filePath,
+                        'original_size' => $originalSize,
+                        'cropped_size' => $newSize,
+                        'size_reduction' => round((1 - $newSize/$originalSize) * 100, 1) . '%'
+                    ]);
+                } else {
+                    Log::info("Document cropping failed, using original image");
+                }
+            }
+
+            // Step 2: OCR con Azure Document Intelligence (sul file ritagliato)
+            $ocrResult = $this->analyzeDocumentWithAzure($filePath);
+            
+            if (!$ocrResult['success']) {
+                throw new \Exception($ocrResult['error']);
+            }
+
+            return [
+                'success' => true,
+                'extracted_text' => $ocrResult['extracted_text'],
+                'document_type' => $ocrResult['document_type'] ?? 'document',
+                'confidence' => $ocrResult['confidence'] ?? 0.9,
+                'processing_time' => $ocrResult['processing_time'] ?? 0,
+                'page_count' => $ocrResult['page_count'] ?? 1,
+                'image_cropped' => $croppedImage !== null,
+                'original_size' => $originalSize,
+                'final_size' => $croppedImage ? strlen($croppedImage) : $originalSize,
+                'improvements_applied' => array_filter([
+                    $croppedImage ? 'Local document cropping' : null,
+                    'Computer vision processing',
+                    'Azure OCR',
+                    'Professional document processing'
+                ])
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Azure + Cropping processing error: ' . $e->getMessage());
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'extracted_text' => null
+            ];
+        }
+    }
+
+    /**
+     * OCR con Azure Document Intelligence
+     */
+    private function analyzeDocumentWithAzure(string $filePath): array
+    {
+        try {
+            $publicDisk = Storage::disk('public');
+            $fileContent = $publicDisk->get($filePath);
+            $mimeType = $publicDisk->mimeType($filePath);
+
+            $url = rtrim($this->documentEndpoint, '/') . '/formrecognizer/documentModels/prebuilt-layout:analyze?api-version=2023-07-31?api-version=2023-07-31';
+
+            $response = $this->client->post($url, [
+                'headers' => [
+                    'Ocp-Apim-Subscription-Key' => $this->documentApiKey,
+                    'Content-Type' => $mimeType
+                ],
+                'body' => $fileContent
+            ]);
+
+            if ($response->getStatusCode() !== 202) {
+                throw new \Exception('Azure OCR error: ' . $response->getStatusCode());
+            }
+
+            $resultUrl = $response->getHeader('Operation-Location')[0];
+            $result = $this->pollForResult($resultUrl);
+            
+            if ($result['success']) {
+                $extractedText = $this->extractTextFromResult($result['data']);
+                
+                return [
+                    'success' => true,
+                    'extracted_text' => $extractedText,
+                    'document_type' => 'document',
+                    'confidence' => 0.95,
+                    'processing_time' => $result['processing_time'] ?? 0,
+                    'page_count' => count($result['data']['pages'] ?? [])
+                ];
+            }
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('Azure OCR error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    private function pollForResult(string $resultUrl): array
+    {
+        $maxAttempts = 30;
+        $attempt = 0;
+
+        while ($attempt < $maxAttempts) {
+            try {
+                $response = $this->client->get($resultUrl, [
+                    'headers' => [
+                        'Ocp-Apim-Subscription-Key' => $this->documentApiKey
+                    ]
+                ]);
+
+                $data = json_decode($response->getBody(), true);
+
+                if ($data['status'] === 'succeeded') {
+                    return [
+                        'success' => true,
+                        'data' => $data['analyzeResult'],
+                        'processing_time' => $attempt
+                    ];
+                }
+
+                if ($data['status'] === 'failed') {
+                    throw new \Exception('Azure processing failed');
+                }
+
+                sleep(1);
+                $attempt++;
+
+            } catch (\Exception $e) {
+                return [
+                    'success' => false,
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+
+        return [
+            'success' => false,
+            'error' => 'Processing timeout'
+        ];
+    }
+
+    private function extractTextFromResult(array $analyzeResult): string
+    {
+        $text = '';
+
+        if (isset($analyzeResult['pages'])) {
+            foreach ($analyzeResult['pages'] as $page) {
+                if (isset($page['words'])) {
+                    foreach ($page['words'] as $word) {
+                        $text .= $word['content'] . ' ';
+                    }
+                }
+                $text .= "\n";
+            }
+        }
+
+        return trim(preg_replace('/\s+/', ' ', $text));
+    }
+
+    public function isConfigured(): bool
+    {
+        return !empty($this->documentEndpoint) && !empty($this->documentApiKey);
+    }
+}

@@ -108,3 +108,25 @@ document.addEventListener('click', function(event) {
 });
 </script>
 @endauth
+
+<!-- Pulsante + Nuovo nella toolbar documenti -->
+
+<!-- Include Document Scanner quando siamo nella pagina create -->
+@if(request()->routeIs("filament.user.resources.documentos.create"))
+@endif
+
+@if(request()->routeIs('filament.user.resources.documentos.index'))
+<style>
+.fi-ta-header-ctn .fi-ta-actions::before {
+    content: '+ Nuovo';
+    background: #10b981;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-right: 8px;
+}
+</style>
+@endif
